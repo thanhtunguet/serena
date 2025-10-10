@@ -73,7 +73,7 @@ class FSharpLanguageServer(SolidLanguageServer):
         dotnet_exe = shutil.which("dotnet")
         if not dotnet_exe:
             raise RuntimeError(
-                ".NET SDK is not installed or not in PATH. Please install .NET SDK 6.0 or later and ensure 'dotnet' is in your PATH."
+                ".NET SDK is not installed or not in PATH. Please install .NET SDK 8.0 or later and ensure 'dotnet' is in your PATH."
             )
 
         # Verify dotnet version
