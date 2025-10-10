@@ -85,7 +85,7 @@ class FSharpLanguageServer(SolidLanguageServer):
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to get .NET SDK version. Please ensure .NET SDK is properly installed.")
 
-        deps = RuntimeDependencyCollection(
+        RuntimeDependencyCollection(
             [
                 RuntimeDependency(
                     id="fsautocomplete",
@@ -372,7 +372,7 @@ class FSharpLanguageServer(SolidLanguageServer):
 
         self.logger.log("Sending initialize request to F# language server", logging.INFO)
         try:
-            init_response = self.server.send.initialize(initialize_params)
+            self.server.send.initialize(initialize_params)
             self.logger.log("Received initialize response from F# language server", logging.DEBUG)
         except Exception as e:
             raise SolidLSPException(f"Failed to initialize F# language server for {self.repository_root_path}: {e}") from e
