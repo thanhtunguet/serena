@@ -2,7 +2,7 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * Language support:
-  * **Add support for F#** via FsAutoComplete/Ionide LSP server. Requires .NET SDK 6.0 or later with comprehensive support for F# language features, type checking, and cross-file analysis.
+  * **Add support for F#** via FsAutoComplete/Ionide LSP server. 
   * **Add support for AL (Application Language)** for Microsoft Dynamics 365 Business Central development. Requires VS Code AL extension (ms-dynamics-smb.al).
   * **Add support for R** via the R languageserver package with LSP integration, performance optimizations, and fallback symbol extraction
   * **Add support for Zig** via ZLS (cross-file references may not fully work on Windows)

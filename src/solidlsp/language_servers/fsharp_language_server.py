@@ -1,5 +1,8 @@
 """
-Provides F# specific instantiation of the LanguageServer class using Ionide LSP.
+Provides F# specific instantiation of the LanguageServer class usi        if not dotnet_path:
+            raise RuntimeError(
+                ".NET SDK is not installed or not in PATH. Please install .NET SDK 8.0 or later and ensure 'dotnet' is in your PATH."
+            )onide LSP.
 Contains various configurations and settings specific to F# development.
 """
 
