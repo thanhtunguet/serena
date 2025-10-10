@@ -339,17 +339,17 @@ class FSharpLanguageServer(SolidLanguageServer):
         def handle_client_register_capability(params):
             """Handle client/registerCapability requests from the LSP server."""
             # For now, just acknowledge the registration
-            return None
+            return
 
         def handle_client_unregister_capability(params):
             """Handle client/unregisterCapability requests from the LSP server."""
             # For now, just acknowledge the unregistration
-            return None
+            return
 
         def handle_work_done_progress_create(params):
             """Handle window/workDoneProgress/create requests from the LSP server."""
             # Just acknowledge the request - we don't need to track progress for now
-            return None
+            return
 
         # Register custom handlers
         self.server.on_notification("window/logMessage", handle_window_log_message)
@@ -373,7 +373,7 @@ class FSharpLanguageServer(SolidLanguageServer):
         self.logger.log("Sending initialize request to F# language server", logging.INFO)
         try:
             init_response = self.server.send.initialize(initialize_params)
-            self.logger.log(f"Received initialize response from F# language server", logging.DEBUG)
+            self.logger.log("Received initialize response from F# language server", logging.DEBUG)
         except Exception as e:
             raise SolidLSPException(f"Failed to initialize F# language server for {self.repository_root_path}: {e}") from e
 

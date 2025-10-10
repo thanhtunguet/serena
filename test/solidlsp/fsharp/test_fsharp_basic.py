@@ -1,16 +1,14 @@
 import os
 import tempfile
 from pathlib import Path
-from typing import cast
 from unittest.mock import Mock, patch
 
 import pytest
 
 from solidlsp import SolidLanguageServer
 from solidlsp.language_servers.fsharp_language_server import FSharpLanguageServer
-from solidlsp.ls_config import Language, LanguageServerConfig
+from solidlsp.ls_config import Language
 from solidlsp.ls_utils import SymbolUtils
-from solidlsp.settings import SolidLSPSettings
 
 
 @pytest.mark.fsharp
