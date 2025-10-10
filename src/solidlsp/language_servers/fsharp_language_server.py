@@ -133,7 +133,7 @@ class FSharpLanguageServer(SolidLanguageServer):
             )
 
         # FsAutoComplete uses --lsp flag for LSP mode
-        return f"{fsautocomplete_path} --lsp"
+        return f"{fsautocomplete_path} --adaptive-lsp-server-enabled --project-graph-enabled --use-fcs-transparent-compiler"
 
     def _get_initialize_params(self) -> InitializeParams:
         """
