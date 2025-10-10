@@ -281,4 +281,4 @@ markers = [
 skip = '.git*,*.svg,*.lock,*.min.*'
 check-hidden = true
 # ignore-regex = ''
-# ignore-words-list = ''
+ignore-words-list = 'paket'
