@@ -239,4 +239,4 @@ class TestFSharpLanguageServerSetup:
                         result = FSharpLanguageServer._setup_runtime_dependencies(mock_logger, mock_config, mock_settings)
 
                         assert fsautocomplete_path in result
-                        assert "--lsp" in result
+                        assert "----adaptive-lsp-server-enabled --project-graph-enabled --use-fcs-transparent-compiler" in result
