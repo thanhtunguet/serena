@@ -78,6 +78,7 @@ class FSharpLanguageServer(SolidLanguageServer):
 
         # Verify dotnet version
         import subprocess
+
         try:
             result = subprocess.run([dotnet_exe, "--version"], capture_output=True, text=True, check=True)
             logger.log(f"Found .NET SDK version: {result.stdout.strip()}", logging.INFO)
@@ -105,19 +106,20 @@ class FSharpLanguageServer(SolidLanguageServer):
 
         if not os.path.exists(fsautocomplete_path):
             logger.log(f"FsAutoComplete executable not found at {fsautocomplete_path}. Installing...", logging.INFO)
-            
+
             # Ensure the directory exists
             os.makedirs(fsharp_ls_dir, exist_ok=True)
-            
+
             # Install FsAutoComplete using dotnet tool install
             try:
                 import subprocess
+
                 result = subprocess.run(
                     [dotnet_exe, "tool", "install", "--tool-path", fsharp_ls_dir, "fsautocomplete"],
                     cwd=fsharp_ls_dir,
                     capture_output=True,
                     text=True,
-                    check=True
+                    check=True,
                 )
                 logger.log("FsAutoComplete installed successfully", logging.INFO)
                 logger.log(f"Installation output: {result.stdout}", logging.DEBUG)
@@ -138,7 +140,7 @@ class FSharpLanguageServer(SolidLanguageServer):
         Returns the initialize params for the F# Language Server.
         """
         root_uri = pathlib.Path(self.repository_root_path).as_uri()
-        
+
         initialize_params = {
             "processId": os.getpid(),
             "rootPath": self.repository_root_path,
@@ -236,33 +238,25 @@ class FSharpLanguageServer(SolidLanguageServer):
                 "automaticWorkspaceInit": True,
                 "abstractClassStubGeneration": True,
                 "abstractClassStubGenerationObjectIdentifier": "this",
-                "abstractClassStubGenerationMethodBody": "failwith \"Not Implemented\"",
+                "abstractClassStubGenerationMethodBody": 'failwith "Not Implemented"',
                 "addFsiWatcher": False,
-                "codeLenses": {
-                    "signature": {"enabled": True},
-                    "references": {"enabled": True}
-                },
+                "codeLenses": {"signature": {"enabled": True}, "references": {"enabled": True}},
                 "disableInMemoryProjectReferences": False,
                 "dotNetRoot": self._get_dotnet_root(),
                 "enableMSBuildProjectGraph": False,
                 "excludeProjectDirectories": ["paket-files"],
                 "externalAutocomplete": False,
-                "fsac": {
-                    "attachDebugger": False,
-                    "silencedLogs": [],
-                    "conserveMemory": False,
-                    "netCoreDllPath": ""
-                },
+                "fsac": {"attachDebugger": False, "silencedLogs": [], "conserveMemory": False, "netCoreDllPath": ""},
                 "fsiExtraParameters": [],
                 "generateBinlog": False,
                 "interfaceStubGeneration": True,
                 "interfaceStubGenerationObjectIdentifier": "this",
-                "interfaceStubGenerationMethodBody": "failwith \"Not Implemented\"",
+                "interfaceStubGenerationMethodBody": 'failwith "Not Implemented"',
                 "keywordsAutocomplete": True,
                 "linter": True,
                 "pipelineHints": {"enabled": True},
                 "recordStubGeneration": True,
-                "recordStubGenerationBody": "failwith \"Not Implemented\"",
+                "recordStubGenerationBody": 'failwith "Not Implemented"',
                 "resolveNamespaces": True,
                 "saveOnlyOpenFiles": False,
                 "showProjectExplorerIn": ["ionide", "solution"],
@@ -271,12 +265,12 @@ class FSharpLanguageServer(SolidLanguageServer):
                 "suggestGitignore": True,
                 "suggestSdkScripts": True,
                 "unionCaseStubGeneration": True,
-                "unionCaseStubGenerationBody": "failwith \"Not Implemented\"",
+                "unionCaseStubGenerationBody": 'failwith "Not Implemented"',
                 "unusedDeclarationsAnalyzer": True,
                 "unusedOpensAnalyzer": True,
                 "verboseLogging": False,
                 "workspaceModePeekDeepLevel": 2,
-                "workspacePath": self.repository_root_path
+                "workspacePath": self.repository_root_path,
             },
             "trace": "off",
         }
@@ -292,46 +286,48 @@ class FSharpLanguageServer(SolidLanguageServer):
             # Try to get the installation path
             try:
                 import subprocess
+
                 result = subprocess.run([dotnet_exe, "--info"], capture_output=True, text=True, check=True)
-                lines = result.stdout.split('\n')
+                lines = result.stdout.split("\n")
                 for line in lines:
-                    if 'Base Path:' in line or 'Base path:' in line:
-                        base_path = line.split(':', 1)[1].strip()
+                    if "Base Path:" in line or "Base path:" in line:
+                        base_path = line.split(":", 1)[1].strip()
                         # Get the parent directory (remove 'sdk/version' part)
                         return str(Path(base_path).parent.parent)
             except (subprocess.CalledProcessError, Exception):
                 pass
-                
+
         # Fallback: use the directory containing dotnet executable
         if dotnet_exe:
             return str(Path(dotnet_exe).parent)
-        
+
         return ""
 
     def _start_server(self):
         """
         Start the F# Language Server with custom handlers.
         """
+
         def handle_window_log_message(params):
             """Handle window/logMessage from the LSP server."""
             message = params.get("message", "")
             message_type = params.get("type", 1)
-            
+
             # Map LSP log levels to Python logging levels
             level_map = {1: logging.ERROR, 2: logging.WARNING, 3: logging.INFO, 4: logging.DEBUG}
             level = level_map.get(message_type, logging.INFO)
-            
+
             self.logger.log(f"FsAutoComplete: {message}", level)
 
         def handle_window_show_message(params):
             """Handle window/showMessage from the LSP server."""
             message = params.get("message", "")
             message_type = params.get("type", 1)
-            
+
             # Map LSP message types to Python logging levels
             level_map = {1: logging.ERROR, 2: logging.WARNING, 3: logging.INFO, 4: logging.DEBUG}
             level = level_map.get(message_type, logging.INFO)
-            
+
             self.logger.log(f"FsAutoComplete Message: {message}", level)
 
         def handle_workspace_configuration(params):
@@ -347,7 +343,7 @@ class FSharpLanguageServer(SolidLanguageServer):
 
         def handle_client_unregister_capability(params):
             """Handle client/unregisterCapability requests from the LSP server."""
-            # For now, just acknowledge the unregistration  
+            # For now, just acknowledge the unregistration
             return None
 
         def handle_work_done_progress_create(params):
