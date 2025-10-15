@@ -36,14 +36,13 @@ class ReadFileTool(Tool):
             required for the task.
         :return: the full text of the file at the given relative path
         """
-        self.project.validate_relative_path(relative_path)
+        self.project.validate_relative_path(relative_path, require_not_ignored=True)
 
         result = self.project.read_file(relative_path)
         result_lines = result.splitlines()
         if end_line is None:
             result_lines = result_lines[start_line:]
         else:
-            self.lines_read.add_lines_read(relative_path, (start_line, end_line))
             result_lines = result_lines[start_line : end_line + 1]
         result = "\n".join(result_lines)
 
@@ -68,7 +67,7 @@ class CreateTextFileTool(Tool, ToolMarkerCanEdit):
         will_overwrite_existing = abs_path.exists()
 
         if will_overwrite_existing:
-            self.project.validate_relative_path(relative_path)
+            self.project.validate_relative_path(relative_path, require_not_ignored=True)
         else:
             assert abs_path.is_relative_to(
                 self.get_project_root()
@@ -89,7 +88,7 @@ class ListDirTool(Tool):
 
     def apply(self, relative_path: str, recursive: bool, skip_ignored_files: bool = False, max_answer_chars: int = -1) -> str:
         """
-        Lists all non-gitignored files and directories in the given directory (optionally with recursion).
+        Lists files and directories in the given directory (optionally with recursion).
 
         :param relative_path: the relative path to the directory to list; pass "." to scan the project root
         :param recursive: whether to scan subdirectories recursively
@@ -108,7 +107,7 @@ class ListDirTool(Tool):
             }
             return json.dumps(error_info)
 
-        self.project.validate_relative_path(relative_path)
+        self.project.validate_relative_path(relative_path, require_not_ignored=skip_ignored_files)
 
         dirs, files = scan_directory(
             os.path.join(self.get_project_root(), relative_path),
@@ -135,7 +134,7 @@ class FindFileTool(Tool):
         :param relative_path: the relative path to the directory to search in; pass "." to scan the project root
         :return: a JSON object with the list of matching files
         """
-        self.project.validate_relative_path(relative_path)
+        self.project.validate_relative_path(relative_path, require_not_ignored=True)
 
         dir_to_scan = os.path.join(self.get_project_root(), relative_path)
 
@@ -193,7 +192,7 @@ class ReplaceRegexTool(Tool, ToolMarkerCanEdit):
             If this is set to False and the regex matches multiple occurrences, an error will be returned
             (and you may retry with a revised, more specific regex).
         """
-        self.project.validate_relative_path(relative_path)
+        self.project.validate_relative_path(relative_path, require_not_ignored=True)
         with EditedFileContext(relative_path, self.agent) as context:
             original_content = context.get_original_content()
             updated_content, n = re.subn(regex, repl, original_content, flags=re.DOTALL | re.MULTILINE)
@@ -228,9 +227,6 @@ class DeleteLinesTool(Tool, ToolMarkerCanEdit, ToolMarkerOptional):
         :param start_line: the 0-based index of the first line to be deleted
         :param end_line: the 0-based index of the last line to be deleted
         """
-        if not self.lines_read.were_lines_read(relative_path, (start_line, end_line)):
-            read_lines_tool = self.agent.get_tool(ReadFileTool)
-            return f"Error: Must call `{read_lines_tool.get_name_from_cls()}` first to read exactly the affected lines."
         code_editor = self.create_code_editor()
         code_editor.delete_lines(relative_path, start_line, end_line)
         return SUCCESS_RESULT
@@ -343,9 +339,11 @@ class SearchForPatternTool(Tool):
         :param context_lines_after: Number of lines of context to include after each match
         :param paths_include_glob: optional glob pattern specifying files to include in the search.
             Matches against relative file paths from the project root (e.g., "*.py", "src/**/*.ts").
+            Supports standard glob patterns (*, ?, [seq], **, etc.) and brace expansion {a,b,c}.
             Only matches files, not directories. If left empty, all non-ignored files will be included.
         :param paths_exclude_glob: optional glob pattern specifying files to exclude from the search.
             Matches against relative file paths from the project root (e.g., "*test*", "**/*_generated.py").
+            Supports standard glob patterns (*, ?, [seq], **, etc.) and brace expansion {a,b,c}.
             Takes precedence over paths_include_glob. Only matches files, not directories. If left empty, no files are excluded.
         :param relative_path: only subpaths of this path (relative to the repo root) will be analyzed. If a path to a single
             file is passed, only that will be searched. The path must exist, otherwise a `FileNotFoundError` is raised.
