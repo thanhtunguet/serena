@@ -13,11 +13,14 @@ import zipfile
 from enum import Enum
 from pathlib import Path, PurePath
 
+import charset_normalizer
 import requests
 
 from solidlsp.ls_exceptions import SolidLSPException
 from solidlsp.ls_logger import LanguageServerLogger
 from solidlsp.ls_types import UnifiedSymbolInformation
+
+log = logging.getLogger(__name__)
 
 
 class InvalidTextLocationError(Exception):
@@ -165,19 +168,32 @@ class FileUtils:
     """
 
     @staticmethod
-    def read_file(logger: LanguageServerLogger, file_path: str, encoding: str) -> str:
+    def read_file(file_path: str, encoding: str) -> str:
         """
-        Reads the file at the given path and returns the contents as a string.
+        Reads the file at the given path using the given encoding and returns the contents as a string.
+        If decoding fails, tries to detect the encoding using charset_normalizer.
+
+        Raises FileNotFoundError if the file does not exist.
         """
         if not os.path.exists(file_path):
-            logger.log(f"File read '{file_path}' failed: File does not exist.", logging.ERROR)
-            raise SolidLSPException(f"File read '{file_path}' failed: File does not exist.")
+            log.error(f"Failed to read '{file_path}': File does not exist.")
+            raise FileNotFoundError(f"File read '{file_path}' failed: File does not exist.")
         try:
-            with open(file_path, encoding=encoding) as inp_file:
-                return inp_file.read()
+            try:
+                with open(file_path, encoding=encoding) as inp_file:
+                    return inp_file.read()
+            except UnicodeDecodeError as ude:
+                results = charset_normalizer.from_path(file_path)
+                match = results.best()
+                if match:
+                    log.warning(
+                        f"Could not decode {file_path} with encoding='{encoding}'; using best match '{match.encoding}' instead",
+                    )
+                    return match.raw.decode(match.encoding)
+                raise ude
         except Exception as exc:
-            logger.log(f"File read '{file_path}' failed to read with encoding '{encoding}': {exc}", logging.ERROR)
-            raise SolidLSPException("File read failed.") from None
+            log.error(f"Failed to read '{file_path}' with encoding '{encoding}': {exc}")
+            raise exc
 
     @staticmethod
     def download_file(logger: LanguageServerLogger, url: str, target_path: str) -> None:
