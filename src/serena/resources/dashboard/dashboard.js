@@ -40,6 +40,123 @@ class LogMessage {
     };
 }
 
+class SponsorRotation {
+    constructor() {
+        this.platinumIndex = 0;
+        this.goldIndex = 0;
+        this.platinumTimer = null;
+        this.goldTimer = null;
+        this.platinumInterval = 5000;
+        this.goldInterval = 5000;
+
+        this.init();
+    }
+
+    init() {
+        let self = this;
+        this.loadSponsors(function() {
+            self.startPlatinumRotation();
+            self.startGoldRotation();
+        });
+    }
+
+    loadSponsors(onSuccess) {
+        $.ajax({
+            url: 'https://oraios-software.de/serena-sponsors/manifest.php',
+            type: 'GET',
+            success: function (response) {
+                console.log('Sponsors loaded:', response);
+
+                function fillSponsors($container, sponsors, className) {
+                    $.each(sponsors, function (index, sponsor) {
+                        let $img = $('<img src="' + sponsor.image + '" alt="' + sponsor.alt + '" class="sponsor-image">');
+                        let $anchor = $('<a href="' + sponsor.link + '" target="_blank"></a>');
+                        $anchor.append($img);
+                        let $sponsor = $('<div class="' + className + '-slide" data-sponsor="' + (index + 1) + '"></div>');
+                        $sponsor.append($anchor);
+                        if (index === 0) {
+                            $sponsor.addClass('active');
+                        }
+                        if (sponsor.border) {
+                            $img.addClass('sponsor-border');
+                        }
+                        $container.append($sponsor);
+                    });
+                }
+
+                fillSponsors($('#gold-sponsors'), response.gold, 'gold-sponsor');
+                fillSponsors($('#platinum-sponsors'), response.platinum, 'platinum-sponsor');
+                onSuccess();
+            },
+            error: function (xhr, status, error) {
+                console.error('Error loading sponsors:', error);
+            }
+        });
+    }
+
+    startPlatinumRotation() {
+        const self = this;
+        this.platinumTimer = setInterval(() => {
+            self.rotatePlatinum('next');
+        }, this.platinumInterval);
+    }
+
+    startGoldRotation() {
+        const self = this;
+        this.goldTimer = setInterval(() => {
+            self.rotateGold('next');
+        }, this.goldInterval);
+    }
+
+    rotatePlatinum(direction) {
+        const $slides = $('.platinum-sponsor-slide');
+        const total = $slides.length;
+
+        if (total === 0) return;
+
+        // Remove active class from current slide
+        $slides.eq(this.platinumIndex).removeClass('active');
+
+        // Calculate next index
+        if (direction === 'next') {
+            this.platinumIndex = (this.platinumIndex + 1) % total;
+        } else {
+            this.platinumIndex = (this.platinumIndex - 1 + total) % total;
+        }
+
+        // Add active class to new slide
+        $slides.eq(this.platinumIndex).addClass('active');
+
+        // Reset timer
+        clearInterval(this.platinumTimer);
+        this.startPlatinumRotation();
+    }
+
+    rotateGold(direction) {
+        const $groups = $('.gold-sponsor-slide');
+        const total = $groups.length;
+
+        if (total === 0) return;
+
+        // Remove active class from current group
+        $groups.eq(this.goldIndex).removeClass('active');
+
+        // Calculate next index
+        if (direction === 'next') {
+            this.goldIndex = (this.goldIndex + 1) % total;
+        } else {
+            this.goldIndex = (this.goldIndex - 1 + total) % total;
+        }
+
+        // Add active class to new group
+        $groups.eq(this.goldIndex).addClass('active');
+
+        // Reset timer
+        clearInterval(this.goldTimer);
+        this.startGoldRotation();
+    }
+}
+
 class Dashboard {
     constructor() {
         let self = this;
@@ -71,7 +188,7 @@ class Dashboard {
         this.pollInterval = null;
         this.configPollInterval = null;
         this.executionsPollInterval = null;
-        this.failureCount = 0;
+        this.heartbeatFailureCount = 0;
 
         // jQuery elements
         this.$logContainer = $('#log-container');
@@ -243,6 +360,9 @@ class Dashboard {
         // Initialize theme
         this.initializeTheme();
 
+        // Initialize sponsor rotation
+        //this.sponsorRotation = new SponsorRotation();
+
         // Add ESC key handler for closing modals
         $(document).keydown(function (e) {
             if (e.key === 'Escape' || e.keyCode === 27) {
@@ -266,6 +386,27 @@ class Dashboard {
             self.loadConfigOverview();
             self.startConfigPolling();
             self.startExecutionsPolling();
+        });
+        // Initialize heartbeat interval
+        setInterval(this.heartbeat.bind(this), 250);
+    }
+
+    heartbeat() {
+        let self = this;
+        $.ajax({
+            url: '/heartbeat',
+            type: 'GET',
+            success: function (response) {
+                self.heartbeatFailureCount = 0;
+            },
+            error: function (xhr, status, error) {
+                self.heartbeatFailureCount++;
+                console.error('Heartbeat failure; count = ', self.heartbeatFailureCount);
+                if (self.heartbeatFailureCount >= 1) {
+                    console.log('Server appears to be down, closing tab');
+                    window.close();
+                }
+            },
         });
     }
 
@@ -331,9 +472,9 @@ class Dashboard {
         console.log('Polling for config overview...');
         let self = this;
         $.ajax({
-            url: '/get_config_overview', type: 'GET', success: function (response) {
-                self.failureCount = 0;
-
+            url: '/get_config_overview',
+            type: 'GET',
+            success: function (response) {
                 // Check if the config data has actually changed
                 const currentConfigJson = JSON.stringify(response);
                 const hasChanged = self.lastConfigDataJson !== currentConfigJson;
@@ -355,11 +496,6 @@ class Dashboard {
                 }
             }, error: function (xhr, status, error) {
                 console.error('Error loading config overview:', error);
-                self.failureCount++;
-                if (self.failureCount >= 3) {
-                    console.log('Server appears to be down, closing tab');
-                    window.close();
-                }
                 self.$configDisplay.html('<div class="error-message">Error loading configuration</div>');
                 self.$basicStatsDisplay.html('<div class="error-message">Error loading stats</div>');
                 self.$projectsDisplay.html('<div class="error-message">Error loading projects</div>');
@@ -503,7 +639,7 @@ class Dashboard {
             html += '<div style="margin-top: 15px; display: flex; gap: 10px; align-items: center;">';
             html += '<div style="flex: 1; padding: 10px; background: var(--bg-secondary); border-radius: 4px; font-size: 13px; border: 1px solid var(--border-color);">';
             html += '<span style="color: var(--text-muted);">📖</span> ';
-            html += '<a href="https://github.com/oraios/serena#configuration" target="_blank" rel="noopener noreferrer" style="color: var(--btn-primary); text-decoration: none; font-weight: 500;">View Configuration Guide</a>';
+            html += '<a href="https://oraios.github.io/serena/02-usage/050_configuration.html" target="_blank" rel="noopener noreferrer" style="color: var(--btn-primary); text-decoration: none; font-weight: 500;">View Configuration Guide</a>';
             html += '</div>';
             html += '<button id="edit-serena-config-btn" class="btn language-add-btn" style="white-space: nowrap; padding: 10px; ">Edit Global Serena Config</button>';
             html += '</div>';
@@ -1019,10 +1155,13 @@ class Dashboard {
         let self = this;
         console.log("Polling logs", this.currentMaxIdx);
         $.ajax({
-            url: '/get_log_messages', type: 'POST', contentType: 'application/json', data: JSON.stringify({
+            url: '/get_log_messages',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
                 start_idx: self.currentMaxIdx + 1
-            }), success: function (response) {
-                self.failureCount = 0;
+            }),
+            success: function (response) {
                 // Only append new messages if we have any
                 if (response.messages && response.messages.length > 0) {
                     let wasAtBottom = false;
@@ -1052,13 +1191,6 @@ class Dashboard {
 
                 // Update window title with active project
                 self.updateTitle(response.active_project);
-            }, error: function (xhr, status, error) {
-                console.error('Error polling for new logs:', error);
-                self.failureCount++;
-                if (self.failureCount >= 3) {
-                    console.log('Server appears to be down, closing tab');
-                    window.close();
-                }
             }
         });
     }
