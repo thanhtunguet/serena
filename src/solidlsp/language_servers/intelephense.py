@@ -14,10 +14,11 @@ from solidlsp.ls import SolidLanguageServer
 from solidlsp.ls_config import LanguageServerConfig
 from solidlsp.ls_logger import LanguageServerLogger
 from solidlsp.ls_utils import PlatformId, PlatformUtils
-from solidlsp.lsp_protocol_handler.lsp_types import DefinitionParams, InitializeParams
+from solidlsp.lsp_protocol_handler.lsp_types import Definition, DefinitionParams, InitializeParams, LocationLink
 from solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from solidlsp.settings import SolidLSPSettings
 
+from ..lsp_protocol_handler import lsp_types
 from .common import RuntimeDependency, RuntimeDependencyCollection
 
 
@@ -26,17 +27,14 @@ class Intelephense(SolidLanguageServer):
     Provides PHP specific instantiation of the LanguageServer class using Intelephense.
 
     You can pass the following entries in ls_specific_settings["php"]:
-        - maxMemory
-        - maxFileSize
+        - maxMemory: sets intelephense.maxMemory
+        - maxFileSize: sets intelephense.files.maxSize
+        - ignore_vendor: whether or ignore directories named "vendor" (default: true)
     """
 
     @override
     def is_ignored_dirname(self, dirname: str) -> bool:
-        # For PHP projects, we should ignore:
-        # - vendor: third-party dependencies <managed by Composer
-        # - node_modules: if the project has JavaScript components
-        # - cache: commonly used for caching
-        return super().is_ignored_dirname(dirname) or dirname in ["node_modules", "vendor", "cache"]
+        return super().is_ignored_dirname(dirname) or dirname in self._ignored_dirnames
 
     @classmethod
     def _setup_runtime_dependencies(cls, logger: LanguageServerLogger, solidlsp_settings: SolidLSPSettings) -> list[str]:
@@ -100,6 +98,18 @@ class Intelephense(SolidLanguageServer):
         )
         self.request_id = 0
 
+        # For PHP projects, we should ignore:
+        # - node_modules: if the project has JavaScript components
+        # - cache: commonly used for caching
+        # - (configurable) vendor: third-party dependencies <managed by Composer
+        self._ignored_dirnames = {"node_modules", "cache"}
+        if self._custom_settings.get("ignore_vendor", True):
+            self._ignored_dirnames.add("vendor")
+        self.logger.log(
+            f"Ignoring the following directories for PHP projects: {', '.join(sorted(self._ignored_dirnames))}",
+            logging.INFO,
+        )
+
     def _get_initialize_params(self, repository_absolute_path: str) -> InitializeParams:
         """
         Returns the initialization params for the Intelephense Language Server.
@@ -130,27 +140,26 @@ class Intelephense(SolidLanguageServer):
         if license_key:
             initialization_options["licenceKey"] = license_key
 
-        custom_intelephense_settings = self._solidlsp_settings.ls_specific_settings.get(self.get_language_enum_instance(), {})
-        max_memory = custom_intelephense_settings.get("maxMemory")
-        max_file_size = custom_intelephense_settings.get("maxFileSize")
+        max_memory = self._custom_settings.get("maxMemory")
+        max_file_size = self._custom_settings.get("maxFileSize")
         if max_memory is not None:
             initialization_options["intelephense.maxMemory"] = max_memory
         if max_file_size is not None:
             initialization_options["intelephense.files.maxSize"] = max_file_size
 
         initialize_params["initializationOptions"] = initialization_options
-        return initialize_params
+        return initialize_params  # type: ignore
 
-    def _start_server(self):
+    def _start_server(self) -> None:
         """Start Intelephense server process"""
 
-        def register_capability_handler(params):
+        def register_capability_handler(params: dict) -> None:
             return
 
-        def window_log_message(msg):
+        def window_log_message(msg: dict) -> None:
             self.logger.log(f"LSP: window/logMessage: {msg}", logging.INFO)
 
-        def do_nothing(params):
+        def do_nothing(params: dict) -> None:
             return
 
         self.server.on_request("client/registerCapability", register_capability_handler)
@@ -185,7 +194,7 @@ class Intelephense(SolidLanguageServer):
 
     @override
     # For some reason, the LS may need longer to process this, so we just retry
-    def _send_references_request(self, relative_file_path: str, line: int, column: int):
+    def _send_references_request(self, relative_file_path: str, line: int, column: int) -> list[lsp_types.Location] | None:
         # TODO: The LS doesn't return references contained in other files if it doesn't sleep. This is
         #   despite the LS having processed requests already. I don't know what causes this, but sleeping
         #   one second helps. It may be that sleeping only once is enough but that's hard to reliably test.
@@ -195,7 +204,7 @@ class Intelephense(SolidLanguageServer):
         return super()._send_references_request(relative_file_path, line, column)
 
     @override
-    def _send_definition_request(self, definition_params: DefinitionParams):
+    def _send_definition_request(self, definition_params: DefinitionParams) -> Definition | list[LocationLink] | None:
         # TODO: same as above, also only a problem if the definition is in another file
         sleep(1)
         return super()._send_definition_request(definition_params)

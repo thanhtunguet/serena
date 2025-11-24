@@ -80,6 +80,7 @@ nix run github:oraios/serena -- <command> [options]
 
 You can also install Serena by referencing this repo (`github:oraios/serena`) and using it in your Nix flake. The package is exported as `serena`.
 
+(start-mcp-server)=
 ## Running the MCP Server
 
 Given your preferred method of running Serena, you can start the MCP server using the `start-mcp-server` command:
@@ -114,6 +115,7 @@ For example, to run the server in stdio mode via `uvx`, you would run:
 See the section ["Configuring Your MCP Client"](030_clients) for specific information on how to configure your MCP client (e.g. Claude Code, Codex, Cursor, etc.)
 to use such a launch command.
 
+(streamable-http)=
 ### Streamable HTTP Mode
 
 When using instead the *Streamable HTTP* mode, you control the server lifecycle yourself,
@@ -178,9 +180,12 @@ Here are some examples of commands you might find useful:
 <serena> tools description find_symbol
 
 # creating a new Serena project in the current directory 
-<serena> project generate-yml
+<serena> project create
 
-# indexing the project in the current directory
+# creating and immediately indexing a project
+<serena> project create --index
+
+# indexing the project in the current directory (auto-creates if needed)
 <serena> project index
 
 # run a health check on the project in the current directory

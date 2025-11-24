@@ -12,6 +12,7 @@ import tarfile
 import threading
 import urllib.request
 import zipfile
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any, cast
 
@@ -22,7 +23,7 @@ from solidlsp.ls_config import LanguageServerConfig
 from solidlsp.ls_exceptions import SolidLSPException
 from solidlsp.ls_logger import LanguageServerLogger
 from solidlsp.ls_utils import PathUtils
-from solidlsp.lsp_protocol_handler.lsp_types import InitializeParams
+from solidlsp.lsp_protocol_handler.lsp_types import InitializeParams, InitializeResult
 from solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from solidlsp.settings import SolidLSPSettings
 from solidlsp.util.zip import SafeZipExtractor
@@ -133,7 +134,7 @@ _RUNTIME_DEPENDENCIES = [
 ]
 
 
-def breadth_first_file_scan(root_dir):
+def breadth_first_file_scan(root_dir: str) -> Iterable[str]:
     """
     Perform a breadth-first scan of files in the given directory.
     Yields file paths in breadth-first order.
@@ -155,7 +156,7 @@ def breadth_first_file_scan(root_dir):
             pass
 
 
-def find_solution_or_project_file(root_dir) -> str | None:
+def find_solution_or_project_file(root_dir: str) -> str | None:
     """
     Find the first .sln file in breadth-first order.
     If no .sln file is found, look for a .csproj file.
@@ -247,17 +248,10 @@ class CSharpLanguageServer(SolidLanguageServer):
         Ensure .NET runtime and Microsoft.CodeAnalysis.LanguageServer are available.
         Returns a tuple of (dotnet_path, language_server_dll_path).
         """
-        language_enum = cls.get_language_enum_instance()
-        ls_specific_settings = solidlsp_settings.ls_specific_settings or {}
-        language_specific_config = ls_specific_settings.get(language_enum, {})
+        language_specific_config = solidlsp_settings.get_ls_specific_settings(cls.get_language_enum_instance())
         runtime_dependency_overrides = cast(list[dict[str, Any]], language_specific_config.get("runtime_dependencies", []))
 
         logger.log("Resolving runtime dependencies", logging.DEBUG)
-        if language_specific_config:
-            logger.log(
-                f"Language-specific config for {language_enum}: {language_specific_config}",
-                logging.DEBUG,
-            )
 
         runtime_dependencies = RuntimeDependencyCollection(
             _RUNTIME_DEPENDENCIES,
@@ -308,6 +302,7 @@ class CSharpLanguageServer(SolidLanguageServer):
         package_version = lang_server_dep.package_version
 
         server_dir = Path(cls.ls_resources_dir(solidlsp_settings)) / f"{package_name}.{package_version}"
+        assert lang_server_dep.binary_name is not None
         server_dll = server_dir / lang_server_dep.binary_name
 
         if server_dll.exists():
@@ -316,6 +311,8 @@ class CSharpLanguageServer(SolidLanguageServer):
 
         # Download and install the language server
         logger.log(f"Downloading {package_name} version {package_version}...", logging.INFO)
+        assert package_version is not None
+        assert package_name is not None
         package_path = cls._download_nuget_package_direct(logger, package_name, package_version, solidlsp_settings)
 
         # Extract and install
@@ -438,6 +435,7 @@ class CSharpLanguageServer(SolidLanguageServer):
 
         # Download .NET 9 runtime using config
         dotnet_dir = Path(cls.ls_resources_dir(solidlsp_settings)) / "dotnet-runtime-9.0"
+        assert dotnet_runtime_dep.binary_name is not None, "Runtime dependency must have a binary_name"
         dotnet_exe = dotnet_dir / dotnet_runtime_dep.binary_name
 
         if dotnet_exe.exists():
@@ -448,9 +446,8 @@ class CSharpLanguageServer(SolidLanguageServer):
         logger.log("Downloading .NET 9 runtime...", logging.INFO)
         dotnet_dir.mkdir(parents=True, exist_ok=True)
 
-        custom_dotnet_runtime_url = solidlsp_settings.ls_specific_settings.get(cls.get_language_enum_instance(), {}).get(
-            "dotnet_runtime_url"
-        )
+        custom_settings = solidlsp_settings.get_ls_specific_settings(cls.get_language_enum_instance())
+        custom_dotnet_runtime_url = custom_settings.get("dotnet_runtime_url")
         if custom_dotnet_runtime_url is not None:
             logger.log(f"Using custom .NET runtime url: {custom_dotnet_runtime_url}", logging.INFO)
             url = custom_dotnet_runtime_url
@@ -542,11 +539,11 @@ class CSharpLanguageServer(SolidLanguageServer):
             },
         )
 
-    def _start_server(self):
-        def do_nothing(params):
+    def _start_server(self) -> None:
+        def do_nothing(params: dict) -> None:
             return
 
-        def window_log_message(msg):
+        def window_log_message(msg: dict) -> None:
             """Log messages from the language server."""
             message_text = msg.get("message", "")
             level = msg.get("type", 4)  # Default to Log level
@@ -556,7 +553,7 @@ class CSharpLanguageServer(SolidLanguageServer):
 
             self.logger.log(f"LSP: {message_text}", level_map.get(level, logging.DEBUG))
 
-        def handle_progress(params):
+        def handle_progress(params: dict) -> None:
             """Handle progress notifications from the language server."""
             token = params.get("token", "")
             value = params.get("value", {})
@@ -590,10 +587,10 @@ class CSharpLanguageServer(SolidLanguageServer):
                 message = value.get("message", "Operation completed")
                 self.logger.log(f"Progress [{token}]: {message}", logging.INFO)
 
-        def handle_workspace_configuration(params):
+        def handle_workspace_configuration(params: dict) -> list:
             """Handle workspace/configuration requests from the server."""
             items = params.get("items", [])
-            result = []
+            result: list[Any] = []
 
             for item in items:
                 section = item.get("section", "")
@@ -636,17 +633,17 @@ class CSharpLanguageServer(SolidLanguageServer):
 
             return result
 
-        def handle_work_done_progress_create(params):
+        def handle_work_done_progress_create(params: dict) -> None:
             """Handle work done progress create requests."""
             # Just acknowledge the request
             return
 
-        def handle_register_capability(params):
+        def handle_register_capability(params: dict) -> None:
             """Handle client/registerCapability requests."""
             # Just acknowledge the request - we don't need to track these for now
             return
 
-        def handle_project_needs_restore(params):
+        def handle_project_needs_restore(params: dict) -> None:
             return
 
         # Set up notification handlers
@@ -710,13 +707,13 @@ class CSharpLanguageServer(SolidLanguageServer):
             logging.INFO,
         )
 
-    def _force_pull_diagnostics(self, init_response: dict) -> None:
+    def _force_pull_diagnostics(self, init_response: dict | InitializeResult) -> None:
         """
         Apply the diagnostic capabilities hack.
         Forces the server to support pull diagnostics.
         """
         capabilities = init_response.get("capabilities", {})
-        diagnostic_provider = capabilities.get("diagnosticProvider", {})
+        diagnostic_provider: Any = capabilities.get("diagnosticProvider", {})
 
         # Add the diagnostic capabilities hack
         if isinstance(diagnostic_provider, dict):

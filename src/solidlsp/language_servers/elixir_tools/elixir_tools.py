@@ -4,7 +4,7 @@ import pathlib
 import stat
 import subprocess
 import threading
-import time
+from typing import Any, cast
 
 from overrides import override
 
@@ -12,6 +12,7 @@ from solidlsp.ls import SolidLanguageServer
 from solidlsp.ls_config import LanguageServerConfig
 from solidlsp.ls_logger import LanguageServerLogger
 from solidlsp.ls_utils import FileUtils, PlatformId, PlatformUtils
+from solidlsp.lsp_protocol_handler import lsp_types
 from solidlsp.lsp_protocol_handler.lsp_types import InitializeParams
 from solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from solidlsp.settings import SolidLSPSettings
@@ -25,6 +26,10 @@ class ElixirTools(SolidLanguageServer):
     """
 
     @override
+    def _get_wait_time_for_cross_file_referencing(self) -> float:
+        return 10.0  # Elixir projects need a lot of time to compile and index before cross-file references work
+
+    @override
     def is_ignored_dirname(self, dirname: str) -> bool:
         # For Elixir projects, we should ignore:
         # - _build: compiled artifacts
@@ -34,7 +39,17 @@ class ElixirTools(SolidLanguageServer):
         # - cover: coverage reports
         return super().is_ignored_dirname(dirname) or dirname in ["_build", "deps", "node_modules", ".elixir_ls", "cover"]
 
-    def _is_next_ls_internal_file(self, abs_path: str) -> bool:
+    @override
+    def is_ignored_path(self, relative_path: str, ignore_unsupported_files: bool = True) -> bool:
+        """Check if a path should be ignored for symbol indexing."""
+        if relative_path.endswith("mix.exs"):
+            # These are project configuration files, not source code with symbols to index
+            return True
+
+        return super().is_ignored_path(relative_path, ignore_unsupported_files)
+
+    @staticmethod
+    def _is_next_ls_internal_file(abs_path: str) -> bool:
         """Check if an absolute path is a Next LS internal file that should be ignored."""
         return any(
             pattern in abs_path
@@ -47,7 +62,7 @@ class ElixirTools(SolidLanguageServer):
         )
 
     @override
-    def _send_references_request(self, relative_file_path: str, line: int, column: int):
+    def _send_references_request(self, relative_file_path: str, line: int, column: int) -> list[lsp_types.Location] | None:
         """Override to filter out Next LS internal files from references."""
         from solidlsp.ls_utils import PathUtils
 
@@ -70,7 +85,7 @@ class ElixirTools(SolidLanguageServer):
         return filtered_response
 
     @classmethod
-    def _get_elixir_version(cls):
+    def _get_elixir_version(cls) -> str | None:
         """Get the installed Elixir version or None if not found."""
         try:
             result = subprocess.run(["elixir", "--version"], capture_output=True, text=True, check=False)
@@ -156,10 +171,12 @@ class ElixirTools(SolidLanguageServer):
 
         dependency = runtime_deps[platform_id]
         executable_path = os.path.join(next_ls_dir, "nextls")
+        assert dependency.binary_name is not None
         binary_path = os.path.join(next_ls_dir, dependency.binary_name)
 
         if not os.path.exists(executable_path):
             logger.log(f"Downloading Next LS binary from {dependency.url}", logging.INFO)
+            assert dependency.url is not None
             FileUtils.download_file(logger, dependency.url, binary_path)
 
             # Make the binary executable on Unix-like systems
@@ -250,19 +267,24 @@ class ElixirTools(SolidLanguageServer):
                     "didChangeConfiguration": {"dynamicRegistration": True},
                     "executeCommand": {"dynamicRegistration": True},
                 },
+                "window": {
+                    "showMessage": {"messageActionItem": {"additionalPropertiesSupport": True}},
+                    "showDocument": {"support": True},
+                    "workDoneProgress": True,
+                },
             },
             "workspaceFolders": [{"uri": root_uri, "name": os.path.basename(repository_absolute_path)}],
         }
 
-        return initialize_params
+        return cast(InitializeParams, initialize_params)
 
-    def _start_server(self):
+    def _start_server(self) -> None:
         """Start Next LS server process"""
 
-        def register_capability_handler(params):
+        def register_capability_handler(params: Any) -> None:
             return
 
-        def window_log_message(msg):
+        def window_log_message(msg: Any) -> None:
             """Handle window/logMessage notifications from Next LS"""
             message_text = msg.get("message", "")
             self.logger.log(f"LSP: window/logMessage: {message_text}", logging.INFO)
@@ -273,10 +295,10 @@ class ElixirTools(SolidLanguageServer):
                 self.logger.log("Next LS runtime is ready based on official log message", logging.INFO)
                 self.server_ready.set()
 
-        def do_nothing(params):
+        def do_nothing(params: Any) -> None:
             return
 
-        def check_server_ready(params):
+        def check_server_ready(params: Any) -> None:
             """
             Handle $/progress notifications from Next LS.
             Keep as fallback for error detection, but primary readiness detection
@@ -291,7 +313,7 @@ class ElixirTools(SolidLanguageServer):
                     self.logger.log("Next LS initialization progress completed", logging.INFO)
                     # Note: We don't set server_ready here - we wait for the log message
 
-        def work_done_progress(params):
+        def work_done_progress(params: Any) -> None:
             """
             Handle $/workDoneProgress notifications from Next LS.
             Keep for completeness but primary readiness detection is via window/logMessage.
@@ -304,7 +326,7 @@ class ElixirTools(SolidLanguageServer):
         self.server.on_request("client/registerCapability", register_capability_handler)
         self.server.on_notification("window/logMessage", window_log_message)
         self.server.on_notification("$/progress", check_server_ready)
-        self.server.on_notification("window/workDoneProgress/create", do_nothing)
+        self.server.on_request("window/workDoneProgress/create", do_nothing)
         self.server.on_notification("$/workDoneProgress", work_done_progress)
         self.server.on_notification("textDocument/publishDiagnostics", do_nothing)
 
@@ -324,11 +346,12 @@ class ElixirTools(SolidLanguageServer):
         # Next LS may not provide all capabilities immediately, so we check for basic ones
         assert "textDocumentSync" in init_response["capabilities"], f"Missing textDocumentSync in {init_response['capabilities']}"
 
-        # Some capabilities might be optional or provided later
+        # Some capabilities might be optional or provided later. This is expected, so we log as info
         if "completionProvider" not in init_response["capabilities"]:
-            self.logger.log("Warning: completionProvider not available in initial capabilities", logging.WARNING)
+            self.logger.log("completionProvider not available in initial capabilities", logging.INFO)
+
         if "definitionProvider" not in init_response["capabilities"]:
-            self.logger.log("Warning: definitionProvider not available in initial capabilities", logging.WARNING)
+            self.logger.log("definitionProvider not available in initial capabilities", logging.INFO)
 
         self.server.notify.initialized({})
         self.completions_available.set()
@@ -341,12 +364,6 @@ class ElixirTools(SolidLanguageServer):
         if self.server_ready.wait(timeout=ready_timeout):
             self.logger.log("Next LS is ready and available for requests", logging.INFO)
 
-            # Add a small settling period to ensure background indexing is complete
-            # Next LS often continues compilation/indexing in background after ready signal
-            settling_time = 120.0
-            self.logger.log(f"Allowing {settling_time} seconds for Next LS background indexing to complete...", logging.INFO)
-            time.sleep(settling_time)
-            self.logger.log("Next LS settling period complete", logging.INFO)
         else:
             error_msg = f"Next LS failed to initialize within {ready_timeout} seconds. This may indicate a problem with the Elixir installation, project compilation, or Next LS itself."
             self.logger.log(error_msg, logging.ERROR)
