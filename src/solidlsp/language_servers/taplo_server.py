@@ -251,14 +251,11 @@ class TaploServer(SolidLanguageServer):
                     },
                     "hover": {"dynamicRegistration": True, "contentFormat": ["markdown", "plaintext"]},
                     "codeAction": {"dynamicRegistration": True},
-                    "formatting": {"dynamicRegistration": True},
-                    "semanticTokens": {"dynamicRegistration": True},
                 },
                 "workspace": {
                     "workspaceFolders": True,
                     "didChangeConfiguration": {"dynamicRegistration": True},
                     "symbol": {"dynamicRegistration": True},
-                    "configuration": True,
                 },
             },
             "processId": os.getpid(),
@@ -270,18 +267,6 @@ class TaploServer(SolidLanguageServer):
                     "name": os.path.basename(repository_absolute_path),
                 }
             ],
-            "initializationOptions": {
-                "configuration": {
-                    "evenBetterToml": {
-                        "schema": {
-                            "enabled": True,
-                            "repositoryEnabled": True,
-                            "repositoryUrl": "https://taplo.tamasfe.dev/schema_index.json",
-                        },
-                        "formatter": {"alignEntries": False, "alignComments": True, "arrayTrailingComma": True},
-                    }
-                }
-            },
         }
         return initialize_params  # type: ignore
 
