@@ -16,8 +16,7 @@ class CheckOnboardingPerformedTool(Tool):
     def apply(self) -> str:
         """
         Checks whether project onboarding was already performed.
-        You should always call this tool before beginning to actually work on the project/after activating a project,
-        but after calling the initial instructions tool.
+        You should always call this tool before beginning to actually work on the project/after activating a project.
         """
         from .memory_tools import ListMemoriesTool
 
