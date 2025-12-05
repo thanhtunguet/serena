@@ -1,9 +1,11 @@
 import logging
 import os
 import platform
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
+from blib2to3.pgen2.parse import contextmanager
 from sensai.util.logging import configure
 
 from serena.constants import SERENA_MANAGED_DIR_IN_HOME, SERENA_MANAGED_DIR_NAME
@@ -14,6 +16,8 @@ from solidlsp.ls_config import Language, LanguageServerConfig
 from solidlsp.settings import SolidLSPSettings
 
 configure(level=logging.ERROR)
+
+log = logging.getLogger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -31,12 +35,8 @@ def get_repo_path(language: Language) -> Path:
     return Path(__file__).parent / "resources" / "repos" / language / "test_repo"
 
 
-def create_ls(
-    language: Language,
-    repo_path: str | None = None,
-    ignored_paths: list[str] | None = None,
-    trace_lsp_communication: bool = False,
-    log_level: int = logging.ERROR,
+def _create_ls(
+    language: Language, repo_path: str | None = None, ignored_paths: list[str] | None = None, trace_lsp_communication: bool = False
 ) -> SolidLanguageServer:
     ignored_paths = ignored_paths or []
     if repo_path is None:
@@ -52,9 +52,34 @@ def create_ls(
     )
 
 
-def create_default_ls(language: Language) -> SolidLanguageServer:
-    repo_path = str(get_repo_path(language))
-    return create_ls(language, repo_path)
+@contextmanager
+def start_ls_context(
+    language: Language, repo_path: str | None = None, ignored_paths: list[str] | None = None, trace_lsp_communication: bool = False
+) -> Iterator[SolidLanguageServer]:
+    ls = _create_ls(language, repo_path, ignored_paths, trace_lsp_communication)
+    log.info(f"Starting language server for {language} {repo_path}")
+    ls.start()
+    try:
+        log.info(f"Language server started for {language} {repo_path}")
+        yield ls
+    finally:
+        log.info(f"Stopping language server for {language} {repo_path}")
+        try:
+            ls.stop()
+        except Exception as e:
+            log.warning(f"Warning: Error stopping language server: {e}")
+            # try to force cleanup
+            if hasattr(ls, "server") and hasattr(ls.server, "process"):
+                try:
+                    ls.server.process.terminate()
+                except:
+                    pass
+
+
+@contextmanager
+def start_default_ls_context(language: Language) -> Iterator[SolidLanguageServer]:
+    with start_ls_context(language) as ls:
+        yield ls
 
 
 def create_default_project(language: Language) -> Project:
@@ -83,7 +108,8 @@ def repo_path(request: LanguageParamRequest) -> Path:
     return get_repo_path(language)
 
 
-@pytest.fixture(scope="session")
+# Note: using module scope here to avoid restarting LS for each test function but still terminate between test modules
+@pytest.fixture(scope="module")
 def language_server(request: LanguageParamRequest):
     """Create a language server instance configured for the specified language.
 
@@ -110,12 +136,8 @@ def language_server(request: LanguageParamRequest):
         raise ValueError("Language parameter must be provided via pytest.mark.parametrize")
 
     language = request.param
-    server = create_default_ls(language)
-    server.start()
-    try:
-        yield server
-    finally:
-        server.stop()
+    with start_default_ls_context(language) as ls:
+        yield ls
 
 
 @pytest.fixture(scope="session")
