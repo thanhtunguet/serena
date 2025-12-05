@@ -11,7 +11,7 @@ from serena.config.serena_config import ProjectConfig, RegisteredProject, Serena
 from serena.project import Project
 from serena.tools import FindReferencingSymbolsTool, FindSymbolTool
 from solidlsp.ls_config import Language
-from test.conftest import get_repo_path
+from test.conftest import get_repo_path, java_tests_enabled
 
 
 @pytest.fixture
@@ -56,6 +56,9 @@ def serena_config():
 @pytest.fixture
 def serena_agent(request: pytest.FixtureRequest, serena_config):
     language = Language(request.param)
+    if language == Language.JAVA and not java_tests_enabled:
+        pytest.skip("Java tests are not enabled")
+
     project_name = f"test_repo_{language}"
 
     return SerenaAgent(project=project_name, serena_config=serena_config)
