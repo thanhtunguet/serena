@@ -5,9 +5,9 @@ import pytest
 from solidlsp import SolidLanguageServer
 from solidlsp.ls_config import Language
 from solidlsp.ls_utils import SymbolUtils
-from test.conftest import java_tests_enabled
+from test.conftest import language_tests_enabled
 
-pytestmark = [pytest.mark.java, pytest.mark.skipif(not java_tests_enabled, reason="Java tests are only run on Windows in CI")]
+pytestmark = [pytest.mark.java, pytest.mark.skipif(not language_tests_enabled(Language.JAVA), reason="Java tests disabled")]
 
 
 class TestJavaLanguageServer:

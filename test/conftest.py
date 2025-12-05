@@ -15,6 +15,8 @@ from solidlsp.ls import SolidLanguageServer
 from solidlsp.ls_config import Language, LanguageServerConfig
 from solidlsp.settings import SolidLSPSettings
 
+from .solidlsp.clojure import is_clojure_cli_available
+
 configure(level=logging.ERROR)
 
 log = logging.getLogger(__name__)
@@ -171,6 +173,51 @@ def project(request: LanguageParamRequest):
 
 
 is_ci = os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
+"""
+Flag indicating whether the tests are running in the GitHub CI environment.
+"""
 
-# We skip Java tests in CI if not on Windows (hangs on Ubuntu for unknown reasons; testing on Windows is sufficient)
-java_tests_enabled = not is_ci or platform.system() == "Windows"
+
+def _determine_disabled_languages() -> list[Language]:
+    """
+    Determine which language tests should be disabled (based on the environment)
+
+    :return: the list of disabled languages
+    """
+    result: list[Language] = []
+
+    # We skip Java tests in CI if not on Windows (hangs on Ubuntu for unknown reasons; testing on Windows is sufficient)
+    java_tests_enabled = not is_ci or platform.system() == "Windows"
+    if not java_tests_enabled:
+        result.append(Language.JAVA)
+
+    clojure_tests_enabled = not is_ci and is_clojure_cli_available()
+    if not clojure_tests_enabled:
+        result.append(Language.CLOJURE)
+
+    al_tests_enabled = not is_ci
+    if not al_tests_enabled:
+        result.append(Language.AL)
+
+    rust_tests_enabled = not is_ci
+    if not rust_tests_enabled:
+        result.append(Language.RUST)
+
+    erlang_tests_enabled = not is_ci
+    if not erlang_tests_enabled:
+        result.append(Language.ERLANG)
+
+    return result
+
+
+_disabled_languages = _determine_disabled_languages()
+
+
+def language_tests_enabled(language: Language) -> bool:
+    """
+    Check if tests for the given language are enabled in the current environment.
+
+    :param language: the language to check
+    :return: True if tests for the language are enabled, False otherwise
+    """
+    return language not in _disabled_languages

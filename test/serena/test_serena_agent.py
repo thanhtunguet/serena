@@ -5,13 +5,13 @@ import time
 
 import pytest
 
-import test.solidlsp.clojure as clj
 from serena.agent import SerenaAgent
 from serena.config.serena_config import ProjectConfig, RegisteredProject, SerenaConfig
 from serena.project import Project
 from serena.tools import FindReferencingSymbolsTool, FindSymbolTool
 from solidlsp.ls_config import Language
-from test.conftest import get_repo_path, java_tests_enabled
+from test.conftest import get_repo_path, language_tests_enabled
+from test.solidlsp import clojure as clj
 
 
 @pytest.fixture
@@ -56,8 +56,8 @@ def serena_config():
 @pytest.fixture
 def serena_agent(request: pytest.FixtureRequest, serena_config):
     language = Language(request.param)
-    if language == Language.JAVA and not java_tests_enabled:
-        pytest.skip("Java tests are not enabled")
+    if not language_tests_enabled(language):
+        pytest.skip(f"Tests for language {language} are not enabled.")
 
     project_name = f"test_repo_{language}"
 
@@ -75,13 +75,7 @@ class TestSerenaAgent:
             pytest.param(Language.RUST, "add", "Function", "lib.rs", marks=pytest.mark.rust),
             pytest.param(Language.TYPESCRIPT, "DemoClass", "Class", "index.ts", marks=pytest.mark.typescript),
             pytest.param(Language.PHP, "helperFunction", "Function", "helper.php", marks=pytest.mark.php),
-            pytest.param(
-                Language.CLOJURE,
-                "greet",
-                "Function",
-                clj.CORE_PATH,
-                marks=[pytest.mark.clojure, pytest.mark.skipif(clj.CLI_FAIL, reason=f"Clojure CLI not available: {clj.CLI_FAIL}")],
-            ),
+            pytest.param(Language.CLOJURE, "greet", "Function", clj.CORE_PATH, marks=pytest.mark.clojure),
             pytest.param(Language.CSHARP, "Calculator", "Class", "Program.cs", marks=pytest.mark.csharp),
         ],
         indirect=["serena_agent"],
@@ -130,7 +124,7 @@ class TestSerenaAgent:
                 "multiply",
                 clj.CORE_PATH,
                 clj.UTILS_PATH,
-                marks=[pytest.mark.clojure, pytest.mark.skipif(clj.CLI_FAIL, reason=f"Clojure CLI not available: {clj.CLI_FAIL}")],
+                marks=pytest.mark.clojure,
             ),
             pytest.param(Language.CSHARP, "Calculator", "Program.cs", "Program.cs", marks=pytest.mark.csharp),
         ],
