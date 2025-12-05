@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+from collections.abc import Iterator
 
 import pytest
 
@@ -54,14 +55,17 @@ def serena_config():
 
 
 @pytest.fixture
-def serena_agent(request: pytest.FixtureRequest, serena_config):
+def serena_agent(request: pytest.FixtureRequest, serena_config) -> Iterator[SerenaAgent]:
     language = Language(request.param)
     if not language_tests_enabled(language):
         pytest.skip(f"Tests for language {language} are not enabled.")
 
     project_name = f"test_repo_{language}"
 
-    return SerenaAgent(project=project_name, serena_config=serena_config)
+    agent = SerenaAgent(project=project_name, serena_config=serena_config)
+    yield agent
+    # explicitly delete to free resources
+    del agent
 
 
 class TestSerenaAgent:
