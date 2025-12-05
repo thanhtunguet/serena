@@ -67,7 +67,7 @@ def start_ls_context(
     finally:
         log.info(f"Stopping language server for {language} {repo_path}")
         try:
-            ls.stop()
+            ls.stop(shutdown_timeout=5)
         except Exception as e:
             log.warning(f"Warning: Error stopping language server: {e}")
             # try to force cleanup
