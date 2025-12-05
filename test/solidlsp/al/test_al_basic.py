@@ -5,6 +5,9 @@ import pytest
 from solidlsp import SolidLanguageServer
 from solidlsp.ls_config import Language
 from solidlsp.ls_utils import SymbolUtils
+from test.conftest import is_ci
+
+pytestmark = [pytest.mark.al, pytest.mark.skipif(not is_ci, reason="AL tests are not run in CI, because they are unstable locally")]
 
 
 @pytest.mark.al
