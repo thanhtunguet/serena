@@ -84,7 +84,7 @@ def start_default_ls_context(language: Language) -> Iterator[SolidLanguageServer
         yield ls
 
 
-def create_default_project(language: Language) -> Project:
+def _create_default_project(language: Language) -> Project:
     repo_path = str(get_repo_path(language))
     return Project.load(repo_path)
 
@@ -142,7 +142,7 @@ def language_server(request: LanguageParamRequest):
         yield ls
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def project(request: LanguageParamRequest):
     """Create a Project for the specified language.
 
@@ -169,7 +169,9 @@ def project(request: LanguageParamRequest):
         raise ValueError("Language parameter must be provided via pytest.mark.parametrize")
 
     language = request.param
-    yield create_default_project(language)
+    project = _create_default_project(language)
+    yield project
+    project.shutdown(timeout=5)
 
 
 is_ci = os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true"
