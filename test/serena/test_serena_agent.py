@@ -65,7 +65,7 @@ def serena_agent(request: pytest.FixtureRequest, serena_config) -> Iterator[Sere
     agent = SerenaAgent(project=project_name, serena_config=serena_config)
     yield agent
     # explicitly delete to free resources
-    del agent
+    agent.shutdown(timeout=5)
 
 
 class TestSerenaAgent:
