@@ -1,6 +1,5 @@
 import logging
 import os
-import platform
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -188,26 +187,17 @@ def _determine_disabled_languages() -> list[Language]:
     """
     result: list[Language] = []
 
-    # We skip Java tests in CI if not on Windows (hangs on Ubuntu for unknown reasons; testing on Windows is sufficient)
-    java_tests_enabled = not is_ci or platform.system() == "Windows"
+    java_tests_enabled = True
     if not java_tests_enabled:
         result.append(Language.JAVA)
 
-    clojure_tests_enabled = not is_ci and is_clojure_cli_available()
+    clojure_tests_enabled = is_clojure_cli_available()
     if not clojure_tests_enabled:
         result.append(Language.CLOJURE)
 
-    al_tests_enabled = not is_ci
+    al_tests_enabled = True
     if not al_tests_enabled:
         result.append(Language.AL)
-
-    rust_tests_enabled = not is_ci
-    if not rust_tests_enabled:
-        result.append(Language.RUST)
-
-    erlang_tests_enabled = not is_ci
-    if not erlang_tests_enabled:
-        result.append(Language.ERLANG)
 
     return result
 

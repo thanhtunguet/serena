@@ -9,8 +9,8 @@ from test.conftest import language_tests_enabled
 from . import CORE_PATH, UTILS_PATH
 
 
-@pytest.mark.clojure
 @pytest.mark.skipif(not language_tests_enabled(Language.CLOJURE), reason="Clojure tests are disabled")
+@pytest.mark.clojure
 class TestLanguageServerBasics:
     @pytest.mark.parametrize("language_server", [Language.CLOJURE], indirect=True)
     def test_basic_definition(self, language_server: SolidLanguageServer):
