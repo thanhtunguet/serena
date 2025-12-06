@@ -17,7 +17,7 @@ from solidlsp.settings import SolidLSPSettings
 
 from .solidlsp.clojure import is_clojure_cli_available
 
-configure(level=logging.ERROR)
+configure(level=logging.INFO)
 
 log = logging.getLogger(__name__)
 
