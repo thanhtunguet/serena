@@ -208,7 +208,9 @@ class TestFSharpLanguageServerSetup:
                         # Create a fake fsautocomplete executable
                         fsharp_dir = os.path.join(temp_dir, "fsharp-lsp")
                         os.makedirs(fsharp_dir, exist_ok=True)
-                        fsautocomplete_path = os.path.join(fsharp_dir, "fsautocomplete")
+                        # Use .exe extension on Windows, matching production code
+                        exe_name = "fsautocomplete.exe" if os.name == "nt" else "fsautocomplete"
+                        fsautocomplete_path = os.path.join(fsharp_dir, exe_name)
                         Path(fsautocomplete_path).touch()
 
                         result = FSharpLanguageServer._setup_runtime_dependencies(mock_config, mock_settings)
