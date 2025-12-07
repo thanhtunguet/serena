@@ -267,7 +267,7 @@ class FSharpLanguageServer(SolidLanguageServer):
             "trace": "off",
         }
 
-        return initialize_params
+        return initialize_params  # type: ignore
 
     def _get_dotnet_root(self) -> str:
         """
@@ -295,12 +295,12 @@ class FSharpLanguageServer(SolidLanguageServer):
 
         return ""
 
-    def _start_server(self):
+    def _start_server(self) -> None:
         """
         Start the F# Language Server with custom handlers.
         """
 
-        def handle_window_log_message(params):
+        def handle_window_log_message(params: dict) -> None:
             """Handle window/logMessage from the LSP server."""
             message = params.get("message", "")
             message_type = params.get("type", 1)
@@ -311,7 +311,7 @@ class FSharpLanguageServer(SolidLanguageServer):
 
             log.log(level, f"FsAutoComplete: {message}")
 
-        def handle_window_show_message(params):
+        def handle_window_show_message(params: dict) -> None:
             """Handle window/showMessage from the LSP server."""
             message = params.get("message", "")
             message_type = params.get("type", 1)
@@ -322,23 +322,23 @@ class FSharpLanguageServer(SolidLanguageServer):
 
             log.log(level, f"FsAutoComplete Message: {message}")
 
-        def handle_workspace_configuration(params):
+        def handle_workspace_configuration(params: dict) -> list:
             """Handle workspace/configuration requests from the LSP server."""
             # Return empty configuration for now
             items = params.get("items", [])
             return [None] * len(items)
 
-        def handle_client_register_capability(params):
+        def handle_client_register_capability(params: dict) -> None:
             """Handle client/registerCapability requests from the LSP server."""
             # For now, just acknowledge the registration
             return
 
-        def handle_client_unregister_capability(params):
+        def handle_client_unregister_capability(params: dict) -> None:
             """Handle client/unregisterCapability requests from the LSP server."""
             # For now, just acknowledge the unregistration
             return
 
-        def handle_work_done_progress_create(params):
+        def handle_work_done_progress_create(params: dict) -> None:
             """Handle window/workDoneProgress/create requests from the LSP server."""
             # Just acknowledge the request - we don't need to track progress for now
             return
