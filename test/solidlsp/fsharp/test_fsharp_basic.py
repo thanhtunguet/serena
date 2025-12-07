@@ -32,14 +32,7 @@ class TestFSharpLanguageServer:
     def test_get_document_symbols_program(self, language_server: SolidLanguageServer) -> None:
         """Test getting document symbols from the main Program.fs file."""
         file_path = os.path.join("Program.fs")
-        symbols = language_server.request_document_symbols(file_path)
-
-        # Check that we have symbols
-        assert len(symbols) > 0
-
-        # Flatten the symbols if they're nested
-        if isinstance(symbols[0], list):
-            symbols = symbols[0]
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()[0]
 
         # Look for expected functions and modules
         symbol_names = [s.get("name") for s in symbols]
@@ -49,14 +42,7 @@ class TestFSharpLanguageServer:
     def test_get_document_symbols_calculator(self, language_server: SolidLanguageServer) -> None:
         """Test getting document symbols from Calculator.fs file."""
         file_path = os.path.join("Calculator.fs")
-        symbols = language_server.request_document_symbols(file_path)
-
-        # Check that we have symbols
-        assert len(symbols) > 0
-
-        # Flatten the symbols if they're nested
-        if isinstance(symbols[0], list):
-            symbols = symbols[0]
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()[0]
 
         # Look for expected functions
         symbol_names = [s.get("name") for s in symbols]
@@ -73,9 +59,8 @@ class TestFSharpLanguageServer:
 
         # Find the 'add' function symbol
         add_symbol = None
-        symbol_list = symbols[0] if symbols and isinstance(symbols[0], list) else symbols
 
-        for sym in symbol_list:
+        for sym in symbols.iter_symbols():
             if sym.get("name") == "add":
                 add_symbol = sym
                 break
@@ -93,14 +78,7 @@ class TestFSharpLanguageServer:
     def test_nested_module_symbols(self, language_server: SolidLanguageServer) -> None:
         """Test getting symbols from nested Models namespace."""
         file_path = os.path.join("Models", "Person.fs")
-        symbols = language_server.request_document_symbols(file_path)
-
-        # Check that we have symbols
-        assert len(symbols) > 0
-
-        # Flatten the symbols if they're nested
-        if isinstance(symbols[0], list):
-            symbols = symbols[0]
+        symbols = language_server.request_document_symbols(file_path).get_all_symbols_and_roots()[0]
 
         # Check for expected types and modules
         symbol_names = [s.get("name") for s in symbols]
@@ -116,11 +94,8 @@ class TestFSharpLanguageServer:
         file_path = os.path.join("Calculator.fs")
         symbols = language_server.request_document_symbols(file_path)
 
-        # Flatten the symbols if they're nested
-        symbol_list = symbols[0] if symbols and isinstance(symbols[0], list) else symbols
-
         subtract_symbol = None
-        for sym in symbol_list:
+        for sym in symbols.iter_symbols():
             if sym.get("name") == "subtract":
                 subtract_symbol = sym
                 break
