@@ -1,5 +1,6 @@
 import os
 import tempfile
+import threading
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -163,29 +164,29 @@ class TestFSharpLanguageServer:
         """Test code completion functionality."""
         file_path = os.path.join("Program.fs")
 
-        # F# completion can be slow, so we'll test this with a timeout approach
-        # In real usage, completions work but may take time for large projects
-        try:
-            import signal
+        # Use threading for cross-platform timeout (signal.SIGALRM is Unix-only)
+        result = [None]
+        exception = [None]
 
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Completion request timed out")
-
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(5)  # 5 second timeout
-
+        def run_completion():
             try:
-                completions = language_server.request_completions(file_path, 15, 10)
-                signal.alarm(0)  # Cancel alarm
-                assert isinstance(completions, list), "Completions should be a list"
-            except TimeoutError:
-                signal.alarm(0)  # Cancel alarm
-                # Completion timed out, but this is acceptable for F# in some cases
-                # The important thing is that the language server doesn't crash
-                assert True, "Completion timed out but language server is stable"
-        except Exception as e:
-            # If we can't set up the timeout, just skip this test
-            assert True, f"Completion test skipped due to: {e}"
+                result[0] = language_server.request_completions(file_path, 15, 10)
+            except Exception as e:
+                exception[0] = e
+
+        thread = threading.Thread(target=run_completion, daemon=True)
+        thread.start()
+        thread.join(timeout=5)  # 5 second timeout
+
+        if thread.is_alive():
+            # Completion timed out, but this is acceptable for F# in some cases
+            # The important thing is that the language server doesn't crash
+            return
+
+        if exception[0]:
+            raise exception[0]
+
+        assert isinstance(result[0], list), "Completions should be a list"
 
     @pytest.mark.parametrize("language_server", [Language.FSHARP], indirect=True)
     def test_diagnostics(self, language_server: SolidLanguageServer) -> None:
