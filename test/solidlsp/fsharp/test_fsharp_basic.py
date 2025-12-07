@@ -213,7 +213,7 @@ class TestFSharpLanguageServerSetup:
     def test_runtime_dependency_setup_without_dotnet(self) -> None:
         """Test that setup fails gracefully when .NET is not installed."""
         with patch("shutil.which", return_value=None):
-            with pytest.raises(RuntimeError, match=".NET SDK is not installed"):
+            with pytest.raises(RuntimeError, match=r"\.NET SDK is not installed"):
                 FSharpLanguageServer._setup_runtime_dependencies(Mock(), Mock())
 
     def test_runtime_dependency_setup_with_dotnet(self) -> None:
