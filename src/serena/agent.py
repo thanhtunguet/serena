@@ -271,8 +271,12 @@ class SerenaAgent:
         if self.serena_config.web_dashboard:
             self._dashboard_thread, port = SerenaDashboardAPI(
                 get_memory_log_handler(), tool_names, agent=self, tool_usage_stats=self._tool_usage_stats
-            ).run_in_thread()
-            dashboard_url = f"http://127.0.0.1:{port}/dashboard/index.html"
+            ).run_in_thread(host=self.serena_config.web_dashboard_host)
+            host_for_url = self.serena_config.web_dashboard_host
+            # this usually means we are in docker, so we use localhost for URL (the user has to port-forward then)
+            if host_for_url == "0.0.0.0":
+                host_for_url = "127.0.0.1"
+            dashboard_url = f"http://{self.serena_config.web_dashboard_host}:{port}/dashboard/index.html"
             log.info("Serena web dashboard started at %s", dashboard_url)
             if self.serena_config.web_dashboard_open_on_launch:
                 # open the dashboard URL in the default web browser (using a separate process to control

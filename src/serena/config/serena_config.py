@@ -28,7 +28,7 @@ from serena.constants import (
     SERENA_MANAGED_DIR_IN_HOME,
     SERENA_MANAGED_DIR_NAME,
 )
-from serena.util.general import load_yaml, save_yaml
+from serena.util.general import get_dataclass_default, load_yaml, save_yaml
 from serena.util.inspection import determine_programming_language_composition
 from solidlsp.ls_config import Language
 
@@ -342,6 +342,8 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
     trace_lsp_communication: bool = False
     web_dashboard: bool = True
     web_dashboard_open_on_launch: bool = True
+    web_dashboard_host: str = "127.0.0.1"
+    """Will be automatically set to '0.0.0.0' when running in Docker. Not loaded from config file."""
     tool_timeout: float = DEFAULT_TOOL_TIMEOUT
     loaded_commented_yaml: CommentedMap | None = None
     config_file_path: str | None = None
@@ -372,6 +374,10 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
 
     CONFIG_FILE = "serena_config.yml"
     CONFIG_FILE_DOCKER = "serena_config.docker.yml"  # Docker-specific config file; auto-generated if missing, mounted via docker-compose for user customization
+
+    def __post_init__(self) -> None:
+        if is_running_in_docker():
+            self.web_dashboard_host = "0.0.0.0"
 
     def _tostring_includes(self) -> list[str]:
         return ["config_file_path"]
@@ -456,23 +462,24 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
             instance.projects.append(project)
 
         # set other configuration parameters
+        def get_value_or_default(field_name: str) -> Any:
+            return loaded_commented_yaml.get(field_name, get_dataclass_default(SerenaConfig, field_name))
+
         if is_running_in_docker():
             instance.gui_log_window_enabled = False  # not supported in Docker
         else:
-            instance.gui_log_window_enabled = loaded_commented_yaml.get("gui_log_window", False)
+            instance.gui_log_window_enabled = get_value_or_default("gui_log_window_enabled")
         instance.log_level = loaded_commented_yaml.get("log_level", loaded_commented_yaml.get("gui_log_level", logging.INFO))
-        instance.web_dashboard = loaded_commented_yaml.get("web_dashboard", True)
-        instance.web_dashboard_open_on_launch = loaded_commented_yaml.get("web_dashboard_open_on_launch", True)
-        instance.tool_timeout = loaded_commented_yaml.get("tool_timeout", DEFAULT_TOOL_TIMEOUT)
-        instance.trace_lsp_communication = loaded_commented_yaml.get("trace_lsp_communication", False)
-        instance.excluded_tools = loaded_commented_yaml.get("excluded_tools", [])
-        instance.included_optional_tools = loaded_commented_yaml.get("included_optional_tools", [])
-        instance.jetbrains = loaded_commented_yaml.get("jetbrains", False)
-        instance.token_count_estimator = loaded_commented_yaml.get(
-            "token_count_estimator", RegisteredTokenCountEstimator.TIKTOKEN_GPT4O.name
-        )
-        instance.default_max_tool_answer_chars = loaded_commented_yaml.get("default_max_tool_answer_chars", 150_000)
-        instance.ls_specific_settings = loaded_commented_yaml.get("ls_specific_settings", {})
+        instance.web_dashboard = get_value_or_default("web_dashboard")
+        instance.web_dashboard_open_on_launch = get_value_or_default("web_dashboard_open_on_launch")
+        instance.tool_timeout = get_value_or_default("tool_timeout")
+        instance.trace_lsp_communication = get_value_or_default("trace_lsp_communication")
+        instance.excluded_tools = get_value_or_default("excluded_tools")
+        instance.included_optional_tools = get_value_or_default("included_optional_tools")
+        instance.jetbrains = get_value_or_default("jetbrains")
+        instance.token_count_estimator = get_value_or_default("token_count_estimator")
+        instance.default_max_tool_answer_chars = get_value_or_default("default_max_tool_answer_chars")
+        instance.ls_specific_settings = get_value_or_default("ls_specific_settings")
 
         # re-save the configuration file if any migrations were performed
         if num_project_migrations > 0:
