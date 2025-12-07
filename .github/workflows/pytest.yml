@@ -21,6 +21,18 @@ jobs:
         python-version: ["3.11"]
     steps:
       - uses: actions/checkout@v3
+      - name: Free disk space
+        if: runner.os == 'Linux'
+        run: |
+          df -h
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache
+          sudo apt-get clean
+          sudo apt-get autoremove -y
+          docker system prune -af || true
+          df -h
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v4
         with:
@@ -38,6 +50,27 @@ jobs:
           mkdir -p $HOME/.serena/language_servers/static
           mkdir -p $HOME/.cache/go-build
           mkdir -p $HOME/go/bin
+      - name: Install uv
+        shell: bash
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - name: Cache uv virtualenv
+        id: cache-uv
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: uv-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
+      - name: Create virtual environment
+        shell: bash
+        run: |
+          if [ ! -d ".venv" ]; then
+            uv venv
+          fi
+      - name: Install dependencies
+        shell: bash
+        run: uv pip install -e ".[dev]"
+      - name: Check formatting
+        shell: bash
+        run: uv run poe lint
       # Add Go bin directory to PATH for this workflow
       # GITHUB_PATH is a special file that GitHub Actions uses to modify PATH
       # Writing to this file adds the directory to the PATH for subsequent steps
@@ -151,6 +184,47 @@ jobs:
         shell: bash
         run: |
           Rscript -e "install.packages('languageserver', repos='https://cloud.r-project.org')"
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.10'
+      - name: Install Julia LanguageServer
+        shell: bash
+        run: julia -e 'using Pkg; Pkg.add("LanguageServer")'
+      - name: Setup Haskell toolchain
+        if: runner.os != 'Windows'
+        uses: haskell/ghcup-setup@v1
+        with:
+          ghc: '9.12.2'
+          cabal: '3.10.3.0'
+          hls: '2.11.0.0'
+      - name: Verify Haskell tools
+        if: runner.os != 'Windows'
+        run: |
+          echo "Verifying installed Haskell tools:"
+          which ghc && ghc --version
+          which cabal && cabal --version
+          # HLS verification - non-blocking in case of version incompatibility
+          if command -v haskell-language-server-wrapper &>/dev/null; then
+            echo "Found haskell-language-server-wrapper"
+            haskell-language-server-wrapper --version || echo "WARNING: HLS wrapper found but version check failed"
+          elif command -v haskell-language-server &>/dev/null; then
+            echo "Found haskell-language-server"
+            haskell-language-server --version || echo "WARNING: HLS found but version check failed"
+          else
+            echo "WARNING: HLS not found (may be incompatible with GHC 9.12.2)"
+            echo "This is not a critical error - tests will use HLS if available at runtime"
+          fi
+        shell: bash
+      - name: Pre-build Haskell test project for HLS
+        if: runner.os != 'Windows'
+        run: |
+          cd test/resources/repos/haskell/test_repo
+          cabal update
+          cabal build --only-dependencies
+          cabal build
+          echo "Haskell test project built successfully"
+        shell: bash
       - name: Install Zig
         uses: goto-bus-stop/setup-zig@v2
         with:
@@ -293,15 +367,6 @@ jobs:
             mv regal.exe "$HOME/bin/"
             echo "$HOME/bin" >> $GITHUB_PATH
           fi
-      - name: Install uv
-        shell: bash
-        run: curl -LsSf https://astral.sh/uv/install.sh | sh
-      - name: Cache uv virtualenv
-        id: cache-uv
-        uses: actions/cache@v3
-        with:
-          path: .venv
-          key: uv-venv-${{ runner.os }}-${{ matrix.python-version }}-${{ hashFiles('uv.lock') }}
       - name: Cache language servers
         id: cache-language-servers
         uses: actions/cache@v3
@@ -310,18 +375,14 @@ jobs:
           key: language-servers-${{ runner.os }}-v1
           restore-keys: |
             language-servers-${{ runner.os }}-
-      - name: Create virtual environment
-        shell: bash
+      - name: Report free disk space
+        if: runner.os == 'Linux'
         run: |
-          if [ ! -d ".venv" ]; then
-            uv venv
-          fi
-      - name: Install dependencies
-        shell: bash
-        run: uv pip install -e ".[dev]"
-      - name: Check formatting
-        shell: bash
-        run: uv run poe lint
+          echo "Free disk space before tests:"
+          df -h
       - name: Test with pytest
         shell: bash
         run: uv run poe test
+      - name: Type-checking with mypy
+        shell: bash
+        run: uv run poe type-check

@@ -2,16 +2,17 @@ import json
 import logging
 import os
 import time
+from collections.abc import Iterator
 
 import pytest
 
-import test.solidlsp.clojure as clj
 from serena.agent import SerenaAgent
 from serena.config.serena_config import ProjectConfig, RegisteredProject, SerenaConfig
 from serena.project import Project
 from serena.tools import FindReferencingSymbolsTool, FindSymbolTool
 from solidlsp.ls_config import Language
-from test.conftest import get_repo_path
+from test.conftest import get_repo_path, language_tests_enabled
+from test.solidlsp import clojure as clj
 
 
 @pytest.fixture
@@ -38,7 +39,7 @@ def serena_config():
                 project_root=str(repo_path),
                 project_config=ProjectConfig(
                     project_name=project_name,
-                    language=language,
+                    languages=[language],
                     ignored_paths=[],
                     excluded_tools=set(),
                     read_only=False,
@@ -55,11 +56,17 @@ def serena_config():
 
 
 @pytest.fixture
-def serena_agent(request: pytest.FixtureRequest, serena_config):
+def serena_agent(request: pytest.FixtureRequest, serena_config) -> Iterator[SerenaAgent]:
     language = Language(request.param)
+    if not language_tests_enabled(language):
+        pytest.skip(f"Tests for language {language} are not enabled.")
+
     project_name = f"test_repo_{language}"
 
-    return SerenaAgent(project=project_name, serena_config=serena_config)
+    agent = SerenaAgent(project=project_name, serena_config=serena_config)
+    yield agent
+    # explicitly delete to free resources
+    agent.shutdown(timeout=5)
 
 
 class TestSerenaAgent:
@@ -73,13 +80,7 @@ class TestSerenaAgent:
             pytest.param(Language.RUST, "add", "Function", "lib.rs", marks=pytest.mark.rust),
             pytest.param(Language.TYPESCRIPT, "DemoClass", "Class", "index.ts", marks=pytest.mark.typescript),
             pytest.param(Language.PHP, "helperFunction", "Function", "helper.php", marks=pytest.mark.php),
-            pytest.param(
-                Language.CLOJURE,
-                "greet",
-                "Function",
-                clj.CORE_PATH,
-                marks=[pytest.mark.clojure, pytest.mark.skipif(clj.CLI_FAIL, reason=f"Clojure CLI not available: {clj.CLI_FAIL}")],
-            ),
+            pytest.param(Language.CLOJURE, "greet", "Function", clj.CORE_PATH, marks=pytest.mark.clojure),
             pytest.param(Language.CSHARP, "Calculator", "Class", "Program.cs", marks=pytest.mark.csharp),
             pytest.param(Language.FSHARP, "Calculator", "Module", "Calculator.fs", marks=pytest.mark.fsharp),
         ],
@@ -88,7 +89,7 @@ class TestSerenaAgent:
     def test_find_symbol(self, serena_agent, symbol_name: str, expected_kind: str, expected_file: str):
         agent = serena_agent
         find_symbol_tool = agent.get_tool(FindSymbolTool)
-        result = find_symbol_tool.apply_ex(name_path=symbol_name)
+        result = find_symbol_tool.apply_ex(name_path_pattern=symbol_name)
 
         symbols = json.loads(result)
         assert any(
@@ -129,7 +130,7 @@ class TestSerenaAgent:
                 "multiply",
                 clj.CORE_PATH,
                 clj.UTILS_PATH,
-                marks=[pytest.mark.clojure, pytest.mark.skipif(clj.CLI_FAIL, reason=f"Clojure CLI not available: {clj.CLI_FAIL}")],
+                marks=pytest.mark.clojure,
             ),
             pytest.param(Language.CSHARP, "Calculator", "Program.cs", "Program.cs", marks=pytest.mark.csharp),
             pytest.param(Language.FSHARP, "add", "Calculator.fs", "Program.fs", marks=pytest.mark.fsharp),
@@ -141,7 +142,7 @@ class TestSerenaAgent:
 
         # Find the symbol location first
         find_symbol_tool = agent.get_tool(FindSymbolTool)
-        result = find_symbol_tool.apply_ex(name_path=symbol_name, relative_path=def_file)
+        result = find_symbol_tool.apply_ex(name_path_pattern=symbol_name, relative_path=def_file)
 
         time.sleep(1)
         symbols = json.loads(result)
@@ -236,7 +237,7 @@ class TestSerenaAgent:
 
         find_symbol_tool = agent.get_tool(FindSymbolTool)
         result = find_symbol_tool.apply_ex(
-            name_path=name_path,
+            name_path_pattern=name_path,
             depth=0,
             relative_path=None,
             include_body=False,
@@ -251,7 +252,7 @@ class TestSerenaAgent:
             and expected_kind.lower() in s["kind"].lower()
             and expected_file in s["relative_path"]
             for s in symbols
-        ), f"Expected to find {name_path} ({expected_kind}) in {expected_file} for {agent._active_project.language.name}. Symbols: {symbols}"
+        ), f"Expected to find {name_path} ({expected_kind}) in {expected_file}. Symbols: {symbols}"
 
     @pytest.mark.parametrize(
         "serena_agent,name_path",
@@ -280,7 +281,7 @@ class TestSerenaAgent:
 
         find_symbol_tool = agent.get_tool(FindSymbolTool)
         result = find_symbol_tool.apply_ex(
-            name_path=name_path,
+            name_path_pattern=name_path,
             depth=0,
             substring_matching=True,
         )

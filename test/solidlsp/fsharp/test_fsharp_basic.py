@@ -214,11 +214,10 @@ class TestFSharpLanguageServerSetup:
         """Test that setup fails gracefully when .NET is not installed."""
         with patch("shutil.which", return_value=None):
             with pytest.raises(RuntimeError, match=".NET SDK is not installed"):
-                FSharpLanguageServer._setup_runtime_dependencies(Mock(), Mock(), Mock())
+                FSharpLanguageServer._setup_runtime_dependencies(Mock(), Mock())
 
     def test_runtime_dependency_setup_with_dotnet(self) -> None:
         """Test that setup works when .NET is available."""
-        mock_logger = Mock()
         mock_config = Mock()
         mock_settings = Mock()
 
@@ -237,7 +236,7 @@ class TestFSharpLanguageServerSetup:
                         fsautocomplete_path = os.path.join(fsharp_dir, "fsautocomplete")
                         Path(fsautocomplete_path).touch()
 
-                        result = FSharpLanguageServer._setup_runtime_dependencies(mock_logger, mock_config, mock_settings)
+                        result = FSharpLanguageServer._setup_runtime_dependencies(mock_config, mock_settings)
 
                         assert fsautocomplete_path in result
                         assert "--adaptive-lsp-server-enabled --project-graph-enabled --use-fcs-transparent-compiler" in result

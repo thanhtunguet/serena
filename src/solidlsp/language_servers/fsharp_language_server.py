@@ -15,10 +15,11 @@ from solidlsp.language_servers.common import RuntimeDependency, RuntimeDependenc
 from solidlsp.ls import SolidLanguageServer
 from solidlsp.ls_config import LanguageServerConfig
 from solidlsp.ls_exceptions import SolidLSPException
-from solidlsp.ls_logger import LanguageServerLogger
 from solidlsp.lsp_protocol_handler.lsp_types import InitializeParams
 from solidlsp.lsp_protocol_handler.server import ProcessLaunchInfo
 from solidlsp.settings import SolidLSPSettings
+
+log = logging.getLogger(__name__)
 
 
 class FSharpLanguageServer(SolidLanguageServer):
@@ -27,17 +28,14 @@ class FSharpLanguageServer(SolidLanguageServer):
     Contains various configurations and settings specific to F# development.
     """
 
-    def __init__(
-        self, config: LanguageServerConfig, logger: LanguageServerLogger, repository_root_path: str, solidlsp_settings: SolidLSPSettings
-    ):
+    def __init__(self, config: LanguageServerConfig, repository_root_path: str, solidlsp_settings: SolidLSPSettings):
         """
         Creates an FSharpLanguageServer instance. This class is not meant to be instantiated directly.
         Use LanguageServer.create() instead.
         """
-        fsharp_lsp_executable_path = self._setup_runtime_dependencies(logger, config, solidlsp_settings)
+        fsharp_lsp_executable_path = self._setup_runtime_dependencies(config, solidlsp_settings)
         super().__init__(
             config,
-            logger,
             repository_root_path,
             ProcessLaunchInfo(cmd=fsharp_lsp_executable_path, cwd=repository_root_path),
             "fsharp",
@@ -59,9 +57,7 @@ class FSharpLanguageServer(SolidLanguageServer):
         ]
 
     @classmethod
-    def _setup_runtime_dependencies(
-        cls, logger: LanguageServerLogger, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings
-    ) -> str:
+    def _setup_runtime_dependencies(cls, config: LanguageServerConfig, solidlsp_settings: SolidLSPSettings) -> str:
         """
         Setup runtime dependencies for F# Language Server and return the command to start the server.
         """
@@ -77,7 +73,7 @@ class FSharpLanguageServer(SolidLanguageServer):
 
         try:
             result = subprocess.run([dotnet_exe, "--version"], capture_output=True, text=True, check=True)
-            logger.log(f"Found .NET SDK version: {result.stdout.strip()}", logging.INFO)
+            log.info(f"Found .NET SDK version: {result.stdout.strip()}")
         except subprocess.CalledProcessError:
             raise RuntimeError("Failed to get .NET SDK version. Please ensure .NET SDK is properly installed.")
 
@@ -101,7 +97,7 @@ class FSharpLanguageServer(SolidLanguageServer):
             fsautocomplete_path += ".exe"
 
         if not os.path.exists(fsautocomplete_path):
-            logger.log(f"FsAutoComplete executable not found at {fsautocomplete_path}. Installing...", logging.INFO)
+            log.info(f"FsAutoComplete executable not found at {fsautocomplete_path}. Installing...")
 
             # Ensure the directory exists
             os.makedirs(fsharp_ls_dir, exist_ok=True)
@@ -117,10 +113,10 @@ class FSharpLanguageServer(SolidLanguageServer):
                     text=True,
                     check=True,
                 )
-                logger.log("FsAutoComplete installed successfully", logging.INFO)
-                logger.log(f"Installation output: {result.stdout}", logging.DEBUG)
+                log.info("FsAutoComplete installed successfully")
+                log.debug(f"Installation output: {result.stdout}")
             except subprocess.CalledProcessError as e:
-                logger.log(f"Failed to install FsAutoComplete: {e.stderr}", logging.ERROR)
+                log.error(f"Failed to install FsAutoComplete: {e.stderr}")
                 raise RuntimeError(f"Failed to install FsAutoComplete: {e.stderr}")
 
         if not os.path.exists(fsautocomplete_path):
@@ -313,7 +309,7 @@ class FSharpLanguageServer(SolidLanguageServer):
             level_map = {1: logging.ERROR, 2: logging.WARNING, 3: logging.INFO, 4: logging.DEBUG}
             level = level_map.get(message_type, logging.INFO)
 
-            self.logger.log(f"FsAutoComplete: {message}", level)
+            log.log(level, f"FsAutoComplete: {message}")
 
         def handle_window_show_message(params):
             """Handle window/showMessage from the LSP server."""
@@ -324,7 +320,7 @@ class FSharpLanguageServer(SolidLanguageServer):
             level_map = {1: logging.ERROR, 2: logging.WARNING, 3: logging.INFO, 4: logging.DEBUG}
             level = level_map.get(message_type, logging.INFO)
 
-            self.logger.log(f"FsAutoComplete Message: {message}", level)
+            log.log(level, f"FsAutoComplete Message: {message}")
 
         def handle_workspace_configuration(params):
             """Handle workspace/configuration requests from the LSP server."""
@@ -355,28 +351,28 @@ class FSharpLanguageServer(SolidLanguageServer):
         self.server.on_request("client/unregisterCapability", handle_client_unregister_capability)
         self.server.on_request("window/workDoneProgress/create", handle_work_done_progress_create)
 
-        self.logger.log("Starting FsAutoComplete F# language server process", logging.INFO)
+        log.info("Starting FsAutoComplete F# language server process")
 
         try:
             self.server.start()
         except Exception as e:
-            self.logger.log(f"Failed to start F# language server process: {e}", logging.ERROR)
+            log.error(f"Failed to start F# language server process: {e}")
             raise SolidLSPException(f"Failed to start F# language server: {e}")
 
         # Send initialization
         initialize_params = self._get_initialize_params()
 
-        self.logger.log("Sending initialize request to F# language server", logging.INFO)
+        log.info("Sending initialize request to F# language server")
         try:
             self.server.send.initialize(initialize_params)
-            self.logger.log("Received initialize response from F# language server", logging.DEBUG)
+            log.debug("Received initialize response from F# language server")
         except Exception as e:
             raise SolidLSPException(f"Failed to initialize F# language server for {self.repository_root_path}: {e}") from e
 
         # Complete initialization
         self.server.notify.initialized({})
 
-        self.logger.log("F# language server initialized successfully", logging.INFO)
+        log.info("F# language server initialized successfully")
 
     @override
     def _get_wait_time_for_cross_file_referencing(self) -> float:
