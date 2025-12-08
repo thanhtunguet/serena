@@ -66,6 +66,7 @@ class ScalaLanguageServer(SolidLanguageServer):
 
         if not os.path.exists(metals_executable):
             if not cs_command_path:
+                assert coursier_command_path is not None
                 log.info("'cs' command not found. Trying to install it using 'coursier'.")
                 try:
                     log.info("Running 'coursier setup --yes' to install 'cs'...")
