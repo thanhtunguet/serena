@@ -532,7 +532,7 @@ class CSharpLanguageServer(SolidLanguageServer):
             # Map LSP message types to Python logging levels
             level_map = {1: logging.ERROR, 2: logging.WARNING, 3: logging.INFO, 4: logging.DEBUG}  # Error  # Warning  # Info  # Log
 
-            log.info(f"LSP: {message_text}", level_map.get(level, logging.DEBUG))
+            log.log(level_map.get(level, logging.DEBUG), f"LSP: {message_text}")
 
         def handle_progress(params: dict) -> None:
             """Handle progress notifications from the language server."""
