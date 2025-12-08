@@ -522,16 +522,23 @@ class LanguageServerSymbolRetriever:
             substring_matching=substring_matching,
             within_relative_path=within_relative_path,
         )
-        if len(symbol_candidates) == 0:
+        if len(symbol_candidates) == 1:
+            return symbol_candidates[0]
+        elif len(symbol_candidates) == 0:
             raise ValueError(f"No symbol matching '{name_path_pattern}' found")
-        if len(symbol_candidates) > 1:
+        else:
+            # There are multiple candidates.
+            # If only one of the candidates has the given pattern as its exact name path, return that one
+            exact_matches = [s for s in symbol_candidates if s.get_name_path() == name_path_pattern]
+            if len(exact_matches) == 1:
+                return exact_matches[0]
+            # otherwise, raise an error
             include_rel_path = within_relative_path is not None
             raise ValueError(
                 f"Found multiple {len(symbol_candidates)} symbols matching '{name_path_pattern}'. "
                 "They are: \n"
                 + json.dumps([s.to_dict(kind=True, include_relative_path=include_rel_path) for s in symbol_candidates], indent=2)
             )
-        return symbol_candidates[0]
 
     def find_by_location(self, location: LanguageServerSymbolLocation) -> LanguageServerSymbol | None:
         if location.relative_path is None:
