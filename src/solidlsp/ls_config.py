@@ -61,6 +61,7 @@ class Language(str, Enum):
     JULIA = "julia"
     FORTRAN = "fortran"
     HASKELL = "haskell"
+    VUE = "vue"
     # Experimental or deprecated Language Servers
     TYPESCRIPT_VTS = "typescript_vts"
     """Use the typescript language server through the natively bundled vscode extension via https://github.com/yioneko/vtsls"""
@@ -98,6 +99,23 @@ class Language(str, Enum):
 
     def __str__(self) -> str:
         return self.value
+
+    def get_priority(self) -> int:
+        """
+        :return: priority of the language for breaking ties between languages; higher is more important.
+        """
+        # experimental languages have the lowest priority
+        if self.is_experimental():
+            return 0
+        # We assign lower priority to languages that are supersets of others, such that
+        # the "larger" language is only chosen when it matches more strongly
+        match self:
+            # languages that are supersets of others (Vue is superset of TypeScript/JavaScript)
+            case self.VUE:
+                return 1
+            # regular languages
+            case _:
+                return 2
 
     def get_source_fn_matcher(self) -> FilenameMatcher:
         match self:
@@ -175,6 +193,13 @@ class Language(str, Enum):
                 )
             case self.HASKELL:
                 return FilenameMatcher("*.hs", "*.lhs")
+            case self.VUE:
+                path_patterns = ["*.vue"]
+                for prefix in ["c", "m", ""]:
+                    for postfix in ["x", ""]:
+                        for base_pattern in ["ts", "js"]:
+                            path_patterns.append(f"*.{prefix}{base_pattern}{postfix}")
+                return FilenameMatcher(*path_patterns)
             case _:
                 raise ValueError(f"Unhandled language: {self}")
 
@@ -216,6 +241,10 @@ class Language(str, Enum):
                 from solidlsp.language_servers.vts_language_server import VtsLanguageServer
 
                 return VtsLanguageServer
+            case self.VUE:
+                from solidlsp.language_servers.vue_language_server import VueLanguageServer
+
+                return VueLanguageServer
             case self.GO:
                 from solidlsp.language_servers.gopls import Gopls
 
