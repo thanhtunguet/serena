@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Sequence
+from collections.abc import Callable, Iterator, Sequence
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any, NotRequired, Self, TypedDict, Union
 
@@ -209,6 +209,13 @@ class LanguageServerSymbol(Symbol, ToStringMixin):
     def symbol_kind(self) -> SymbolKind:
         return self.symbol_root["kind"]
 
+    def is_low_level(self) -> bool:
+        """
+        :return: whether the symbol is a low-level symbol (variable, constant, etc.), which typically represents data
+            rather than structure and therefore is not relevant in a high-level overview of the code.
+        """
+        return self.symbol_kind >= SymbolKind.Variable.value
+
     @property
     def overload_idx(self) -> int | None:
         return self.symbol_root.get("overload_idx")
@@ -380,13 +387,14 @@ class LanguageServerSymbol(Symbol, ToStringMixin):
         include_body: bool = False,
         include_children_body: bool = False,
         include_relative_path: bool = True,
+        child_inclusion_predicate: Callable[[Self], bool] | None = None,
     ) -> dict[str, Any]:
         """
         Converts the symbol to a dictionary.
 
         :param kind: whether to include the kind of the symbol
         :param location: whether to include the location of the symbol
-        :param depth: the depth of the symbol
+        :param depth: the depth up to which to include child symbols (0 = do not include children)
         :param include_body: whether to include the body of the top-level symbol.
         :param include_children_body: whether to also include the body of the children.
             Note that the body of the children is part of the body of the parent symbol,
@@ -394,6 +402,8 @@ class LanguageServerSymbol(Symbol, ToStringMixin):
             and pass the children without passing the parent body to the LM.
         :param include_relative_path: whether to include the relative path of the symbol in the location
             entry. Relative paths of the symbol's children are always excluded.
+        :param child_inclusion_predicate: an optional predicate that decides whether a child symbol
+            should be included.
         :return: a dictionary representation of the symbol
         """
         result: dict[str, Any] = {"name": self.name, "name_path": self.get_name_path()}
@@ -411,14 +421,20 @@ class LanguageServerSymbol(Symbol, ToStringMixin):
                 log.warning("Requested body for symbol, but it is not present. The symbol might have been loaded with include_body=False.")
             result["body"] = self.body
 
-        def add_children(s: Self) -> list[dict[str, Any]]:
+        if child_inclusion_predicate is None:
+            child_inclusion_predicate = lambda s: True
+
+        def included_children(s: Self) -> list[dict[str, Any]]:
             children = []
             for c in s.iter_children():
+                if not child_inclusion_predicate(c):
+                    continue
                 children.append(
                     c.to_dict(
                         kind=kind,
                         location=location,
                         depth=depth - 1,
+                        child_inclusion_predicate=child_inclusion_predicate,
                         include_body=include_children_body,
                         include_children_body=include_children_body,
                         # all children have the same relative path as the parent
@@ -428,7 +444,9 @@ class LanguageServerSymbol(Symbol, ToStringMixin):
             return children
 
         if depth > 0:
-            result["children"] = add_children(self)
+            children = included_children(self)
+            if len(children) > 0:
+                result["children"] = included_children(self)
 
         return result
 
@@ -621,23 +639,35 @@ class LanguageServerSymbolRetriever:
 
         return [ReferenceInLanguageServerSymbol.from_lsp_reference(r) for r in references]
 
-    @dataclass
-    class SymbolOverviewElement:
-        name_path: str
-        kind: int
-
-        @classmethod
-        def from_symbol(cls, symbol: LanguageServerSymbol) -> Self:
-            return cls(name_path=symbol.get_name_path(), kind=int(symbol.symbol_kind))
-
-    def get_symbol_overview(self, relative_path: str) -> dict[str, list[SymbolOverviewElement]]:
+    def get_symbol_overview(self, relative_path: str, depth: int = 0) -> dict[str, list[dict]]:
+        """
+        :param relative_path: the path of the file or directory for which to get the symbol overview
+        :param depth: the depth up to which to include child symbols (0 = only top-level symbols)
+        :return: a mapping from file paths to lists of symbol dictionaries.
+            For the case where a file is passed, the mapping will contain a single entry.
+        """
         lang_server = self.get_language_server(relative_path)
         path_to_unified_symbols = lang_server.request_overview(relative_path)
+
+        def child_inclusion_predicate(s: LanguageServerSymbol) -> bool:
+            return not s.is_low_level()
+
         result = {}
         for file_path, unified_symbols in path_to_unified_symbols.items():
-            # TODO: maybe include not just top-level symbols? We could filter by kind to exclude variables
-            #  The language server methods would need to be adjusted for this.
-            result[file_path] = [self.SymbolOverviewElement.from_symbol(LanguageServerSymbol(s)) for s in unified_symbols]
+            symbols_in_file = []
+            for us in unified_symbols:
+                symbol = LanguageServerSymbol(us)
+                symbols_in_file.append(
+                    symbol.to_dict(
+                        depth=depth,
+                        kind=True,
+                        include_relative_path=False,
+                        location=False,
+                        child_inclusion_predicate=child_inclusion_predicate,
+                    )
+                )
+            result[file_path] = symbols_in_file
+
         return result
 
 
