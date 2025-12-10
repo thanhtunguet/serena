@@ -342,8 +342,8 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
     trace_lsp_communication: bool = False
     web_dashboard: bool = True
     web_dashboard_open_on_launch: bool = True
-    web_dashboard_host: str = "127.0.0.1"
-    """Will be automatically set to '0.0.0.0' when running in Docker. Not loaded from config file."""
+    web_dashboard_listen_address: str = "127.0.0.1"
+    """When running in Docker, this will be automatically set to '0.0.0.0' ignoring any configuration by the user."""
     tool_timeout: float = DEFAULT_TOOL_TIMEOUT
     loaded_commented_yaml: CommentedMap | None = None
     config_file_path: str | None = None
@@ -377,7 +377,7 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
 
     def __post_init__(self) -> None:
         if is_running_in_docker():
-            self.web_dashboard_host = "0.0.0.0"
+            self.web_dashboard_listen_address = "0.0.0.0"
 
     def _tostring_includes(self) -> list[str]:
         return ["config_file_path"]
@@ -469,6 +469,8 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
             instance.gui_log_window_enabled = False  # not supported in Docker
         else:
             instance.gui_log_window_enabled = get_value_or_default("gui_log_window_enabled")
+            # in docker the post_init takes care of setting the address to 0.0.0.0, we ignore the user's setting
+            instance.web_dashboard_listen_address = get_value_or_default("web_dashboard_listen_address")
         instance.log_level = loaded_commented_yaml.get("log_level", loaded_commented_yaml.get("gui_log_level", logging.INFO))
         instance.web_dashboard = get_value_or_default("web_dashboard")
         instance.web_dashboard_open_on_launch = get_value_or_default("web_dashboard_open_on_launch")
