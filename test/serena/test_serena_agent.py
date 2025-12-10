@@ -31,6 +31,7 @@ def serena_config():
         Language.CSHARP,
         Language.CLOJURE,
         Language.FSHARP,
+        Language.POWERSHELL,
     ]:
         repo_path = get_repo_path(language)
         if repo_path.exists():
@@ -87,6 +88,7 @@ class TestSerenaAgent:
             pytest.param(Language.CLOJURE, "greet", "Function", clj.CORE_PATH, marks=pytest.mark.clojure),
             pytest.param(Language.CSHARP, "Calculator", "Class", "Program.cs", marks=pytest.mark.csharp),
             pytest.param(Language.FSHARP, "Calculator", "Module", "Calculator.fs", marks=pytest.mark.fsharp),
+            pytest.param(Language.POWERSHELL, "function Greet-User ()", "Function", "main.ps1", marks=pytest.mark.powershell),
         ],
         indirect=["serena_agent"],
     )
@@ -138,6 +140,7 @@ class TestSerenaAgent:
             ),
             pytest.param(Language.CSHARP, "Calculator", "Program.cs", "Program.cs", marks=pytest.mark.csharp),
             pytest.param(Language.FSHARP, "add", "Calculator.fs", "Program.fs", marks=pytest.mark.fsharp),
+            pytest.param(Language.POWERSHELL, "function Greet-User ()", "main.ps1", "main.ps1", marks=pytest.mark.powershell),
         ],
         indirect=["serena_agent"],
     )

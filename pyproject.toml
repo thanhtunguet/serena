@@ -301,6 +301,7 @@ markers = [
   "fortran: language server running for Fortran",
   "haskell: Haskell language server tests",
   "yaml: language server running for YAML",
+  "powershell: language server running for PowerShell",
 ]
 
 [tool.codespell]

@@ -62,6 +62,7 @@ class Language(str, Enum):
     FORTRAN = "fortran"
     HASKELL = "haskell"
     VUE = "vue"
+    POWERSHELL = "powershell"
     # Experimental or deprecated Language Servers
     TYPESCRIPT_VTS = "typescript_vts"
     """Use the typescript language server through the natively bundled vscode extension via https://github.com/yioneko/vtsls"""
@@ -200,6 +201,8 @@ class Language(str, Enum):
                         for base_pattern in ["ts", "js"]:
                             path_patterns.append(f"*.{prefix}{base_pattern}{postfix}")
                 return FilenameMatcher(*path_patterns)
+            case self.POWERSHELL:
+                return FilenameMatcher("*.ps1", "*.psm1", "*.psd1")
             case _:
                 raise ValueError(f"Unhandled language: {self}")
 
@@ -353,6 +356,10 @@ class Language(str, Enum):
                 from solidlsp.language_servers.fsharp_language_server import FSharpLanguageServer
 
                 return FSharpLanguageServer
+            case self.POWERSHELL:
+                from solidlsp.language_servers.powershell_language_server import PowerShellLanguageServer
+
+                return PowerShellLanguageServer
             case _:
                 raise ValueError(f"Unhandled language: {self}")
 
