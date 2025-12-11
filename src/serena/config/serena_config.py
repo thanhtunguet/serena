@@ -27,7 +27,7 @@ from serena.constants import (
     SERENA_FILE_ENCODING,
     SERENA_MANAGED_DIR_NAME,
 )
-from serena.util.general import load_yaml, save_yaml
+from serena.util.general import get_dataclass_default, load_yaml, save_yaml
 from serena.util.inspection import determine_programming_language_composition
 from solidlsp.ls_config import Language
 
@@ -104,19 +104,6 @@ class SerenaConfigError(Exception):
 
 def get_serena_managed_in_project_dir(project_root: str | Path) -> str:
     return os.path.join(project_root, SERENA_MANAGED_DIR_NAME)
-
-
-def is_running_in_docker() -> bool:
-    """Check if we're running inside a Docker container."""
-    # Check for Docker-specific files
-    if os.path.exists("/.dockerenv"):
-        return True
-    # Check cgroup for docker references
-    try:
-        with open("/proc/self/cgroup") as f:
-            return "docker" in f.read()
-    except FileNotFoundError:
-        return False
 
 
 @dataclass(kw_only=True)
@@ -367,6 +354,7 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
     trace_lsp_communication: bool = False
     web_dashboard: bool = True
     web_dashboard_open_on_launch: bool = True
+    web_dashboard_listen_address: str = "127.0.0.1"
     tool_timeout: float = DEFAULT_TOOL_TIMEOUT
     loaded_commented_yaml: CommentedMap | None = None
     config_file_path: str | None = None
@@ -396,7 +384,6 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
     """Advanced configuration option allowing to configure language server implementation specific options, see SolidLSPSettings for more info."""
 
     CONFIG_FILE = "serena_config.yml"
-    CONFIG_FILE_DOCKER = "serena_config.docker.yml"  # Docker-specific config file; auto-generated if missing, mounted via docker-compose for user customization
 
     def _tostring_includes(self) -> list[str]:
         return ["config_file_path"]
@@ -417,20 +404,17 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
         """
         :return: the location where the Serena configuration file is stored/should be stored
         """
-        if is_running_in_docker():
-            return os.path.join(REPO_ROOT, cls.CONFIG_FILE_DOCKER)
-        else:
-            config_path = os.path.join(SerenaPaths().serena_user_home_dir, cls.CONFIG_FILE)
+        config_path = os.path.join(SerenaPaths().serena_user_home_dir, cls.CONFIG_FILE)
 
-            # if the config file does not exist, check if we can migrate it from the old location
-            if not os.path.exists(config_path):
-                old_config_path = os.path.join(REPO_ROOT, cls.CONFIG_FILE)
-                if os.path.exists(old_config_path):
-                    log.info(f"Moving Serena configuration file from {old_config_path} to {config_path}")
-                    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-                    shutil.move(old_config_path, config_path)
+        # if the config file does not exist, check if we can migrate it from the old location
+        if not os.path.exists(config_path):
+            old_config_path = os.path.join(REPO_ROOT, cls.CONFIG_FILE)
+            if os.path.exists(old_config_path):
+                log.info(f"Moving Serena configuration file from {old_config_path} to {config_path}")
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                shutil.move(old_config_path, config_path)
 
-            return config_path
+        return config_path
 
     @classmethod
     def from_config_file(cls, generate_if_missing: bool = True) -> "SerenaConfig":
@@ -481,23 +465,22 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
             instance.projects.append(project)
 
         # set other configuration parameters
-        if is_running_in_docker():
-            instance.gui_log_window_enabled = False  # not supported in Docker
-        else:
-            instance.gui_log_window_enabled = loaded_commented_yaml.get("gui_log_window", False)
+        def get_value_or_default(field_name: str) -> Any:
+            return loaded_commented_yaml.get(field_name, get_dataclass_default(SerenaConfig, field_name))
+
+        instance.gui_log_window_enabled = get_value_or_default("gui_log_window_enabled")
+        instance.web_dashboard_listen_address = get_value_or_default("web_dashboard_listen_address")
         instance.log_level = loaded_commented_yaml.get("log_level", loaded_commented_yaml.get("gui_log_level", logging.INFO))
-        instance.web_dashboard = loaded_commented_yaml.get("web_dashboard", True)
-        instance.web_dashboard_open_on_launch = loaded_commented_yaml.get("web_dashboard_open_on_launch", True)
-        instance.tool_timeout = loaded_commented_yaml.get("tool_timeout", DEFAULT_TOOL_TIMEOUT)
-        instance.trace_lsp_communication = loaded_commented_yaml.get("trace_lsp_communication", False)
-        instance.excluded_tools = loaded_commented_yaml.get("excluded_tools", [])
-        instance.included_optional_tools = loaded_commented_yaml.get("included_optional_tools", [])
-        instance.jetbrains = loaded_commented_yaml.get("jetbrains", False)
-        instance.token_count_estimator = loaded_commented_yaml.get(
-            "token_count_estimator", RegisteredTokenCountEstimator.TIKTOKEN_GPT4O.name
-        )
-        instance.default_max_tool_answer_chars = loaded_commented_yaml.get("default_max_tool_answer_chars", 150_000)
-        instance.ls_specific_settings = loaded_commented_yaml.get("ls_specific_settings", {})
+        instance.web_dashboard = get_value_or_default("web_dashboard")
+        instance.web_dashboard_open_on_launch = get_value_or_default("web_dashboard_open_on_launch")
+        instance.tool_timeout = get_value_or_default("tool_timeout")
+        instance.trace_lsp_communication = get_value_or_default("trace_lsp_communication")
+        instance.excluded_tools = get_value_or_default("excluded_tools")
+        instance.included_optional_tools = get_value_or_default("included_optional_tools")
+        instance.jetbrains = get_value_or_default("jetbrains")
+        instance.token_count_estimator = get_value_or_default("token_count_estimator")
+        instance.default_max_tool_answer_chars = get_value_or_default("default_max_tool_answer_chars")
+        instance.ls_specific_settings = get_value_or_default("ls_specific_settings")
 
         # re-save the configuration file if any migrations were performed
         if num_project_migrations > 0:
