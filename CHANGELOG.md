@@ -52,6 +52,7 @@ Status of the `main` branch. Changes prior to the next official version change w
   * **Kotlin now officially supported**: We now use the official Kotlin LS, tests run through and performance is good, even though the LS is in an early development stage.
   * **Add support for Erlang** experimental, may hang or be slow, uses the recently archived [erlang_ls](https://github.com/erlang-ls/erlang_ls)
   * **Ruby dual language server support**: Added ruby-lsp as the modern primary Ruby language server. Solargraph remains available as an experimental legacy option. ruby-lsp supports both .rb and .erb files, while Solargraph supports .rb files only.
+  * **Add support for PowerShell** via PowerShell Editor Services (PSES). Requires `pwsh` (PowerShell Core) to be installed and available in PATH. Supports symbol navigation, go-to-definition, and within-file references for .ps1 files.
 
 
 # 0.1.4
