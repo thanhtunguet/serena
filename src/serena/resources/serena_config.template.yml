@@ -20,6 +20,9 @@ web_dashboard: True
 # shows Serena's current session logs - as an alternative to the GUI log window which
 # is supported on all platforms.
 
+web_dashboard_listen_address: 127.0.0.1
+# The address where the web dashboard will listen on
+
 web_dashboard_open_on_launch: True
 # whether to open a browser window with the web dashboard when Serena starts (provided that web_dashboard
 # is enabled). If set to False, you can still open the dashboard manually by navigating to

@@ -560,7 +560,7 @@ class SerenaDashboardAPI:
 
         raise RuntimeError(f"No free ports found starting from {start_port}")
 
-    def run(self, host: str = "0.0.0.0", port: int = 0x5EDA) -> int:
+    def run(self, host: str, port: int) -> int:
         """
         Runs the dashboard on the given host and port and returns the port number.
         """
@@ -572,8 +572,9 @@ class SerenaDashboardAPI:
         self._app.run(host=host, port=port, debug=False, use_reloader=False, threaded=True)
         return port
 
-    def run_in_thread(self) -> tuple[threading.Thread, int]:
+    def run_in_thread(self, host: str) -> tuple[threading.Thread, int]:
         port = self._find_first_free_port(0x5EDA)
-        thread = threading.Thread(target=lambda: self.run(port=port), daemon=True)
+        log.info("Starting dashboard (listen_address=%s, port=%d)", host, port)
+        thread = threading.Thread(target=lambda: self.run(host=host, port=port), daemon=True)
         thread.start()
         return thread, port
