@@ -574,6 +574,7 @@ class SerenaDashboardAPI:
 
     def run_in_thread(self, host: str) -> tuple[threading.Thread, int]:
         port = self._find_first_free_port(0x5EDA)
+        log.info("Starting dashboard (listen_address=%s, port=%d)", host, port)
         thread = threading.Thread(target=lambda: self.run(host=host, port=port), daemon=True)
         thread.start()
         return thread, port
