@@ -25,10 +25,9 @@ from serena.constants import (
     REPO_ROOT,
     SERENA_CONFIG_TEMPLATE_FILE,
     SERENA_FILE_ENCODING,
-    SERENA_MANAGED_DIR_IN_HOME,
     SERENA_MANAGED_DIR_NAME,
 )
-from serena.util.general import load_yaml, save_yaml
+from serena.util.general import get_dataclass_default, load_yaml, save_yaml
 from serena.util.inspection import determine_programming_language_composition
 from solidlsp.ls_config import Language
 
@@ -53,9 +52,32 @@ class SerenaPaths:
     """
 
     def __init__(self) -> None:
-        self.user_config_dir: str = SERENA_MANAGED_DIR_IN_HOME
+        home_dir = os.getenv("SERENA_HOME")
+        if home_dir is None or home_dir.strip() == "":
+            home_dir = str(Path.home() / SERENA_MANAGED_DIR_NAME)
+        else:
+            home_dir = home_dir.strip()
+        self.serena_user_home_dir: str = home_dir
         """
-        the path to the user's Serena configuration directory, which is typically ~/.serena
+        the path to the Serena home directory, where the user's configuration/data is stored.
+        This is ~/.serena by default, but it can be overridden via the SERENA_HOME environment variable.
+        """
+        self.user_prompt_templates_dir: str = os.path.join(self.serena_user_home_dir, "prompt_templates")
+        """
+        directory containing prompt templates defined by the user.
+        Prompts defined by the user take precedence over Serena's built-in prompt templates.
+        """
+        self.user_contexts_dir: str = os.path.join(self.serena_user_home_dir, "contexts")
+        """
+        directory containing contexts defined by the user. 
+        If a name of a context matches a name of a context in SERENAS_OWN_CONTEXT_YAMLS_DIR, 
+        the user context will override the default context definition.
+        """
+        self.user_modes_dir: str = os.path.join(self.serena_user_home_dir, "modes")
+        """
+        directory containing modes defined by the user.
+        If a name of a mode matches a name of a mode in SERENAS_OWN_MODES_YAML_DIR,
+        the user mode will override the default mode definition.
         """
 
     def get_next_log_file_path(self, prefix: str) -> str:
@@ -63,7 +85,7 @@ class SerenaPaths:
         :param prefix: the filename prefix indicating the type of the log file
         :return: the full path to the log file to use
         """
-        log_dir = os.path.join(self.user_config_dir, "logs", datetime.now().strftime("%Y-%m-%d"))
+        log_dir = os.path.join(self.serena_user_home_dir, "logs", datetime.now().strftime("%Y-%m-%d"))
         os.makedirs(log_dir, exist_ok=True)
         return os.path.join(log_dir, prefix + "_" + datetime_tag() + ".txt")
 
@@ -82,19 +104,6 @@ class SerenaConfigError(Exception):
 
 def get_serena_managed_in_project_dir(project_root: str | Path) -> str:
     return os.path.join(project_root, SERENA_MANAGED_DIR_NAME)
-
-
-def is_running_in_docker() -> bool:
-    """Check if we're running inside a Docker container."""
-    # Check for Docker-specific files
-    if os.path.exists("/.dockerenv"):
-        return True
-    # Check cgroup for docker references
-    try:
-        with open("/proc/self/cgroup") as f:
-            return "docker" in f.read()
-    except FileNotFoundError:
-        return False
 
 
 @dataclass(kw_only=True)
@@ -152,15 +161,18 @@ class ProjectConfig(ToolInclusionDefinition, ToStringMixin):
                         f"Read the documentation for more information."
                     )
                 # sort languages by number of files found
-                languages_and_percentages = sorted(language_composition.items(), key=lambda item: item[1], reverse=True)
+                languages_and_percentages = sorted(
+                    language_composition.items(), key=lambda item: (item[1], item[0].get_priority()), reverse=True
+                )
                 # find the language with the highest percentage and enable it
                 top_language_pair = languages_and_percentages[0]
                 other_language_pairs = languages_and_percentages[1:]
-                languages_to_use = [top_language_pair[0]]
+                languages_to_use: list[str] = [top_language_pair[0].value]
                 # if in interactive mode, ask the user which other languages to enable
                 if len(other_language_pairs) > 0 and interactive:
                     print(
-                        "Detected and enabled main language '%s' (%.2f%% of source files)." % (top_language_pair[0], top_language_pair[1])
+                        "Detected and enabled main language '%s' (%.2f%% of source files)."
+                        % (top_language_pair[0].value, top_language_pair[1])
                     )
                     print(f"Additionally detected {len(other_language_pairs)} other language(s).\n")
                     print("Note: Enable only languages you need symbolic retrieval/editing capabilities for.")
@@ -168,9 +180,9 @@ class ProjectConfig(ToolInclusionDefinition, ToStringMixin):
                     print("      system-level installations/configuration (see Serena documentation).")
                     print("\nWhich additional languages do you want to enable?")
                     for lang, perc in other_language_pairs:
-                        enable = ask_yes_no("Enable %s (%.2f%% of source files)?" % (lang, perc), default=False)
+                        enable = ask_yes_no("Enable %s (%.2f%% of source files)?" % (lang.value, perc), default=False)
                         if enable:
-                            languages_to_use.append(lang)
+                            languages_to_use.append(lang.value)
                     print()
             else:
                 languages_to_use = [lang.value for lang in languages]
@@ -342,6 +354,7 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
     trace_lsp_communication: bool = False
     web_dashboard: bool = True
     web_dashboard_open_on_launch: bool = True
+    web_dashboard_listen_address: str = "127.0.0.1"
     tool_timeout: float = DEFAULT_TOOL_TIMEOUT
     loaded_commented_yaml: CommentedMap | None = None
     config_file_path: str | None = None
@@ -371,13 +384,12 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
     """Advanced configuration option allowing to configure language server implementation specific options, see SolidLSPSettings for more info."""
 
     CONFIG_FILE = "serena_config.yml"
-    CONFIG_FILE_DOCKER = "serena_config.docker.yml"  # Docker-specific config file; auto-generated if missing, mounted via docker-compose for user customization
 
     def _tostring_includes(self) -> list[str]:
         return ["config_file_path"]
 
     @classmethod
-    def generate_config_file(cls, config_file_path: str) -> None:
+    def _generate_config_file(cls, config_file_path: str) -> None:
         """
         Generates a Serena configuration file at the specified path from the template file.
 
@@ -392,20 +404,17 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
         """
         :return: the location where the Serena configuration file is stored/should be stored
         """
-        if is_running_in_docker():
-            return os.path.join(REPO_ROOT, cls.CONFIG_FILE_DOCKER)
-        else:
-            config_path = os.path.join(SERENA_MANAGED_DIR_IN_HOME, cls.CONFIG_FILE)
+        config_path = os.path.join(SerenaPaths().serena_user_home_dir, cls.CONFIG_FILE)
 
-            # if the config file does not exist, check if we can migrate it from the old location
-            if not os.path.exists(config_path):
-                old_config_path = os.path.join(REPO_ROOT, cls.CONFIG_FILE)
-                if os.path.exists(old_config_path):
-                    log.info(f"Moving Serena configuration file from {old_config_path} to {config_path}")
-                    os.makedirs(os.path.dirname(config_path), exist_ok=True)
-                    shutil.move(old_config_path, config_path)
+        # if the config file does not exist, check if we can migrate it from the old location
+        if not os.path.exists(config_path):
+            old_config_path = os.path.join(REPO_ROOT, cls.CONFIG_FILE)
+            if os.path.exists(old_config_path):
+                log.info(f"Moving Serena configuration file from {old_config_path} to {config_path}")
+                os.makedirs(os.path.dirname(config_path), exist_ok=True)
+                shutil.move(old_config_path, config_path)
 
-            return config_path
+        return config_path
 
     @classmethod
     def from_config_file(cls, generate_if_missing: bool = True) -> "SerenaConfig":
@@ -419,7 +428,7 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
             if not generate_if_missing:
                 raise FileNotFoundError(f"Serena configuration file not found: {config_file_path}")
             log.info(f"Serena configuration file not found at {config_file_path}, autogenerating...")
-            cls.generate_config_file(config_file_path)
+            cls._generate_config_file(config_file_path)
 
         # load the configuration
         log.info(f"Loading Serena configuration from {config_file_path}")
@@ -456,23 +465,22 @@ class SerenaConfig(ToolInclusionDefinition, ToStringMixin):
             instance.projects.append(project)
 
         # set other configuration parameters
-        if is_running_in_docker():
-            instance.gui_log_window_enabled = False  # not supported in Docker
-        else:
-            instance.gui_log_window_enabled = loaded_commented_yaml.get("gui_log_window", False)
+        def get_value_or_default(field_name: str) -> Any:
+            return loaded_commented_yaml.get(field_name, get_dataclass_default(SerenaConfig, field_name))
+
+        instance.gui_log_window_enabled = get_value_or_default("gui_log_window_enabled")
+        instance.web_dashboard_listen_address = get_value_or_default("web_dashboard_listen_address")
         instance.log_level = loaded_commented_yaml.get("log_level", loaded_commented_yaml.get("gui_log_level", logging.INFO))
-        instance.web_dashboard = loaded_commented_yaml.get("web_dashboard", True)
-        instance.web_dashboard_open_on_launch = loaded_commented_yaml.get("web_dashboard_open_on_launch", True)
-        instance.tool_timeout = loaded_commented_yaml.get("tool_timeout", DEFAULT_TOOL_TIMEOUT)
-        instance.trace_lsp_communication = loaded_commented_yaml.get("trace_lsp_communication", False)
-        instance.excluded_tools = loaded_commented_yaml.get("excluded_tools", [])
-        instance.included_optional_tools = loaded_commented_yaml.get("included_optional_tools", [])
-        instance.jetbrains = loaded_commented_yaml.get("jetbrains", False)
-        instance.token_count_estimator = loaded_commented_yaml.get(
-            "token_count_estimator", RegisteredTokenCountEstimator.TIKTOKEN_GPT4O.name
-        )
-        instance.default_max_tool_answer_chars = loaded_commented_yaml.get("default_max_tool_answer_chars", 150_000)
-        instance.ls_specific_settings = loaded_commented_yaml.get("ls_specific_settings", {})
+        instance.web_dashboard = get_value_or_default("web_dashboard")
+        instance.web_dashboard_open_on_launch = get_value_or_default("web_dashboard_open_on_launch")
+        instance.tool_timeout = get_value_or_default("tool_timeout")
+        instance.trace_lsp_communication = get_value_or_default("trace_lsp_communication")
+        instance.excluded_tools = get_value_or_default("excluded_tools")
+        instance.included_optional_tools = get_value_or_default("included_optional_tools")
+        instance.jetbrains = get_value_or_default("jetbrains")
+        instance.token_count_estimator = get_value_or_default("token_count_estimator")
+        instance.default_max_tool_answer_chars = get_value_or_default("default_max_tool_answer_chars")
+        instance.ls_specific_settings = get_value_or_default("ls_specific_settings")
 
         # re-save the configuration file if any migrations were performed
         if num_project_migrations > 0:
