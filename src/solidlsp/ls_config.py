@@ -99,6 +99,10 @@ class Language(str, Enum):
     def is_experimental(self) -> bool:
         """
         Check if the language server is experimental or deprecated.
+
+        Note for serena users/developers:
+        Experimental languages are not autodetected and must be explicitly specified
+        in the project.yml configuration.
         """
         return self in {
             self.TYPESCRIPT_VTS,
@@ -107,6 +111,7 @@ class Language(str, Enum):
             self.RUBY_SOLARGRAPH,
             self.MARKDOWN,
             self.YAML,
+            self.TOML,
         }
 
     def __str__(self) -> str:

@@ -167,6 +167,7 @@ class TaploServer(SolidLanguageServer):
     @classmethod
     def _download_taplo(cls, install_dir: str, executable_path: str) -> None:
         """Download and extract Taplo binary with SHA256 verification."""
+        # TODO: consider using existing download utilities in SolidLSP instead of the custom logic here
         download_url, _ = _get_taplo_download_url()
         archive_filename = os.path.basename(download_url)
 
