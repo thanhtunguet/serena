@@ -40,6 +40,18 @@ class LogMessage {
     };
 }
 
+function updateThemeAwareImage($img, theme=null) {
+    if (!theme) {
+        const isDarkMode = $('html').data("theme") == 'dark';
+        theme = isDarkMode ? 'dark' : 'light';
+    }
+    console.log("updating theme-aware image to theme:", theme);
+    const newSrc = $img.data('src-' + theme);
+    if (newSrc) {
+        $img.attr('src', newSrc);
+    }
+}
+
 class BannerRotation {
     constructor() {
         this.platinumIndex = 0;
@@ -70,6 +82,12 @@ class BannerRotation {
                 function fillSponsors($container, sponsors, className) {
                     $.each(sponsors, function (index, sponsor) {
                         let $img = $('<img src="' + sponsor.image + '" alt="' + sponsor.alt + '" class="sponsor-image">');
+                        if (sponsor.image_dark) {
+                            $img.addClass('theme-aware-img');
+                            $img.attr('data-src-dark', sponsor.image_dark);
+                            $img.attr('data-src-light', sponsor.image);
+                            updateThemeAwareImage($img);
+                        }
                         let $anchor = $('<a href="' + sponsor.link + '" target="_blank"></a>');
                         $anchor.append($img);
                         let $sponsor = $('<div class="' + className + '-slide" data-sponsor="' + (index + 1) + '"></div>');
@@ -1463,6 +1481,9 @@ class Dashboard {
         this.setTheme(newTheme);
     }
 
+    /**
+     * @param theme {'light' | 'dark'}
+     */
     setTheme(theme) {
         // Set the theme on the document element
         document.documentElement.setAttribute('data-theme', theme);
@@ -1476,25 +1497,17 @@ class Dashboard {
             this.$themeText.text('Dark');
         }
 
-        // Update the logo based on theme
-        this.updateLogo(theme);
+        // Update theme-aware images
+        $(".theme-aware-img").each(function() {
+            const $img = $(this);
+            updateThemeAwareImage($img, theme);
+        });
 
         // Save to localStorage
         localStorage.setItem('serena-theme', theme);
 
         // Update charts if they exist
         this.updateChartsTheme();
-    }
-
-    updateLogo(theme) {
-        const logoElement = document.getElementById('serena-logo');
-        if (logoElement) {
-            if (theme === 'dark') {
-                logoElement.src = 'serena-logo-dark-mode.svg';
-            } else {
-                logoElement.src = 'serena-logo.svg';
-            }
-        }
     }
 
     updateChartsTheme() {
