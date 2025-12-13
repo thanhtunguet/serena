@@ -40,14 +40,14 @@ class LogMessage {
     };
 }
 
-class SponsorRotation {
+class BannerRotation {
     constructor() {
         this.platinumIndex = 0;
         this.goldIndex = 0;
         this.platinumTimer = null;
         this.goldTimer = null;
-        this.platinumInterval = 5000;
-        this.goldInterval = 5000;
+        this.platinumInterval = 15000;
+        this.goldInterval = 15000;
 
         this.init();
     }
@@ -361,7 +361,7 @@ class Dashboard {
         this.initializeTheme();
 
         // Initialize sponsor rotation
-        this.sponsorRotation = new SponsorRotation();
+        this.sponsorRotation = new BannerRotation();
 
         // Add ESC key handler for closing modals
         $(document).keydown(function (e) {
