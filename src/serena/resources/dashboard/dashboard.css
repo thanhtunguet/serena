@@ -97,8 +97,15 @@ body {
 }
 
 .logo-container {
+    height: var(--header-height);
     order: 1;
     flex-shrink: 0;
+}
+
+.logo-container img {
+    height: calc(var(--header-height) - 20px);
+    margin-top: 10px;
+    display: block;
 }
 
 .header-sponsor {
@@ -107,11 +114,6 @@ body {
     left: 0;
     order: 2;
     max-height: var(--header-height);
-}
-
-.logo-container img {
-    height: var(--header-height);
-    display: block;
 }
 
 .header-nav {
