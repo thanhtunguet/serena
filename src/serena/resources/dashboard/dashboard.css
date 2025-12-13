@@ -227,6 +227,7 @@ body {
 
 .gold-sponsor-slide {
     position: absolute;
+    pointer-events: none;
     opacity: 0;
     transition: opacity 0.5s ease-in-out;
 }
