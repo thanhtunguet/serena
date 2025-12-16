@@ -268,9 +268,6 @@ class ReplaceContentTool(Tool, ToolMarkerCanEdit):
 
             regex_flags = re.DOTALL | re.MULTILINE
 
-            # escape backslashes in repl
-            repl = repl.replace("\\", "\\\\")
-
             # create replacement function with validation and backreference handling
             repl_fn = self._create_replacement_function(regex, repl, regex_flags=regex_flags)
 
