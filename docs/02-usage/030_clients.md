@@ -88,6 +88,18 @@ Note:
     that Serena is configured to work on the current project from the get-go, following 
     Claude Code's mode of operation.
 
+Alternatively, use `--project-from-cwd` for user-level configuration that works across all projects:
+
+```shell
+claude mcp add --scope user serena -- <serena> start-mcp-server --context=claude-code --project-from-cwd
+```
+
+This searches up from the current directory for `.serena/project.yml` or `.git` markers,
+falling back to the current directory if neither is found. This makes it suitable for a
+single global MCP configuration. The `--project-from-cwd` option is intended for CLI-based agents
+(like Claude Code, Gemina or Codex) that invoke Serena from within project directories.
+
+Be sure to use at least `v1.0.52` of Claude Code (as earlier versions do not read MCP server system prompts upon startup). 
 
 ### VSCode
 
