@@ -61,6 +61,7 @@ class Language(str, Enum):
     JULIA = "julia"
     FORTRAN = "fortran"
     HASKELL = "haskell"
+    GROOVY = "groovy"
     VUE = "vue"
     POWERSHELL = "powershell"
     # Experimental or deprecated Language Servers
@@ -112,6 +113,7 @@ class Language(str, Enum):
             self.MARKDOWN,
             self.YAML,
             self.TOML,
+            self.GROOVY,
         }
 
     def __str__(self) -> str:
@@ -221,6 +223,8 @@ class Language(str, Enum):
                 return FilenameMatcher(*path_patterns)
             case self.POWERSHELL:
                 return FilenameMatcher("*.ps1", "*.psm1", "*.psd1")
+            case self.GROOVY:
+                return FilenameMatcher("*.groovy", "*.gvy")
             case _:
                 raise ValueError(f"Unhandled language: {self}")
 
@@ -382,6 +386,10 @@ class Language(str, Enum):
                 from solidlsp.language_servers.powershell_language_server import PowerShellLanguageServer
 
                 return PowerShellLanguageServer
+            case self.GROOVY:
+                from solidlsp.language_servers.groovy_language_server import GroovyLanguageServer
+
+                return GroovyLanguageServer
             case _:
                 raise ValueError(f"Unhandled language: {self}")
 
