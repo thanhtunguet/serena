@@ -3,13 +3,14 @@ import logging
 import os
 import time
 from collections.abc import Iterator
+from contextlib import contextmanager
 
 import pytest
 
 from serena.agent import SerenaAgent
 from serena.config.serena_config import ProjectConfig, RegisteredProject, SerenaConfig
 from serena.project import Project
-from serena.tools import FindReferencingSymbolsTool, FindSymbolTool, ReplaceSymbolBodyTool
+from serena.tools import SUCCESS_RESULT, FindReferencingSymbolsTool, FindSymbolTool, ReplaceContentTool, ReplaceSymbolBodyTool
 from solidlsp.ls_config import Language
 from test.conftest import get_repo_path, language_tests_enabled
 from test.solidlsp import clojure as clj
@@ -56,6 +57,24 @@ def serena_config():
     return config
 
 
+@contextmanager
+def project_file_modification_context(serena_agent: SerenaAgent, relative_path: str) -> Iterator[None]:
+    """Context manager to modify a project file and revert the changes after use."""
+    project = serena_agent.get_active_project()
+    file_path = os.path.join(project.project_root, relative_path)
+
+    # Read the original content
+    with open(file_path, encoding=project.project_config.encoding) as f:
+        original_content = f.read()
+
+    try:
+        yield
+    finally:
+        # Revert to the original content
+        with open(file_path, "w", encoding=project.project_config.encoding) as f:
+            f.write(original_content)
+
+
 @pytest.fixture
 def serena_agent(request: pytest.FixtureRequest, serena_config) -> Iterator[SerenaAgent]:
     language = Language(request.param)
@@ -70,7 +89,8 @@ def serena_agent(request: pytest.FixtureRequest, serena_config) -> Iterator[Sere
     agent.execute_task(lambda: None)
 
     yield agent
-    # explicitly delete to free resources
+
+    # explicitly shut down to free resources
     agent.shutdown(timeout=5)
 
 
@@ -355,3 +375,52 @@ class TestSerenaAgent:
         replace_symbol_body_tool = serena_agent.get_tool(ReplaceSymbolBodyTool)
         with pytest.raises(ValueError, match=match_text):
             replace_symbol_body_tool.apply(name_path=name_path, relative_path=relative_path, body="")
+
+    @pytest.mark.parametrize(
+        "serena_agent",
+        [
+            pytest.param(
+                Language.TYPESCRIPT,
+                marks=pytest.mark.typescript,
+            ),
+        ],
+        indirect=["serena_agent"],
+    )
+    def test_replace_content_regex(self, serena_agent: SerenaAgent):
+        """
+        Tests a regex-based content replacement that has a unique match
+        """
+        relative_path = "ws_manager.js"
+        with project_file_modification_context(serena_agent, relative_path):
+            replace_content_tool = serena_agent.get_tool(ReplaceContentTool)
+            result = replace_content_tool.apply(
+                needle=r'catch \(error\) \{\s*console.error\("Failed to connect.*?\}',
+                repl='catch(error) { console.log("Never mind"); }',
+                relative_path=relative_path,
+                mode="regex",
+            )
+            assert result == SUCCESS_RESULT
+
+    @pytest.mark.parametrize(
+        "serena_agent",
+        [
+            pytest.param(
+                Language.TYPESCRIPT,
+                marks=pytest.mark.typescript,
+            ),
+        ],
+        indirect=["serena_agent"],
+    )
+    def test_replace_content_regex_ambiguous(self, serena_agent: SerenaAgent):
+        """
+        Tests that an ambiguous replacement where there is a larger match that internally contains
+        a smaller match triggers an exception
+        """
+        replace_content_tool = serena_agent.get_tool(ReplaceContentTool)
+        with pytest.raises(ValueError, match="ambiguous"):
+            replace_content_tool.apply(
+                needle=r'catch \(error\) \{.*?this\.updateConnectionStatus\("Connection failed", false\);.*?\}',
+                repl='catch(error) { console.log("Never mind"); }',
+                relative_path="ws_manager.js",
+                mode="regex",
+            )
