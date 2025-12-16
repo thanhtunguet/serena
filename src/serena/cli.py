@@ -161,8 +161,16 @@ class TopLevelCommands(AutoRegisteringGroup):
         show_default=True,
         help="Transport protocol.",
     )
-    @click.option("--host", type=str, default="0.0.0.0", show_default=True)
-    @click.option("--port", type=int, default=8000, show_default=True)
+    @click.option(
+        "--host",
+        type=str,
+        default="0.0.0.0",
+        show_default=True,
+        help="Listen address for the MCP server (when using corresponding transport).",
+    )
+    @click.option(
+        "--port", type=int, default=8000, show_default=True, help="Listen port for the MCP server (when using corresponding transport)."
+    )
     @click.option("--enable-web-dashboard", type=bool, is_flag=False, default=None, help="Override dashboard setting in config.")
     @click.option("--enable-gui-log-window", type=bool, is_flag=False, default=None, help="Override GUI log window setting in config.")
     @click.option(
