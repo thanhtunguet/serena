@@ -3,6 +3,7 @@
  */
 class WebSocketManager {
     constructor() {
+        console.log("WebSocketManager initializing\nStatus OK");
         this.ws = null;
         this.statusElement = document.getElementById("status");
     }

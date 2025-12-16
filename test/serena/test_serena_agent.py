@@ -1,9 +1,11 @@
 import json
 import logging
 import os
+import re
 import time
 from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import Literal
 
 import pytest
 
@@ -57,6 +59,13 @@ def serena_config():
     return config
 
 
+def read_project_file(project: Project, relative_path: str) -> str:
+    """Utility function to read a file from the project."""
+    file_path = os.path.join(project.project_root, relative_path)
+    with open(file_path, encoding=project.project_config.encoding) as f:
+        return f.read()
+
+
 @contextmanager
 def project_file_modification_context(serena_agent: SerenaAgent, relative_path: str) -> Iterator[None]:
     """Context manager to modify a project file and revert the changes after use."""
@@ -64,8 +73,7 @@ def project_file_modification_context(serena_agent: SerenaAgent, relative_path: 
     file_path = os.path.join(project.project_root, relative_path)
 
     # Read the original content
-    with open(file_path, encoding=project.project_config.encoding) as f:
-        original_content = f.read()
+    original_content = read_project_file(project, relative_path)
 
     try:
         yield
@@ -386,7 +394,7 @@ class TestSerenaAgent:
         ],
         indirect=["serena_agent"],
     )
-    def test_replace_content_regex(self, serena_agent: SerenaAgent):
+    def test_replace_content_regex_with_wildcard_ok(self, serena_agent: SerenaAgent):
         """
         Tests a regex-based content replacement that has a unique match
         """
@@ -411,7 +419,39 @@ class TestSerenaAgent:
         ],
         indirect=["serena_agent"],
     )
-    def test_replace_content_regex_ambiguous(self, serena_agent: SerenaAgent):
+    @pytest.mark.parametrize("mode", ["literal", "regex"])
+    def test_replace_content_with_backslashes(self, serena_agent: SerenaAgent, mode: Literal["literal", "regex"]):
+        """
+        Tests a content replacement where the needle and replacement strings contain backslashes.
+        This is a regression test for escaping issues.
+        """
+        relative_path = "ws_manager.js"
+        needle = r'console.log("WebSocketManager initializing\nStatus OK");'
+        repl = r'console.log("WebSocketManager initialized\nAll systems go!");'
+        replace_content_tool = serena_agent.get_tool(ReplaceContentTool)
+        mode: Literal["literal", "regex"]
+        with project_file_modification_context(serena_agent, relative_path):
+            result = replace_content_tool.apply(
+                needle=re.escape(needle) if mode == "regex" else needle,
+                repl=repl,
+                relative_path=relative_path,
+                mode=mode,
+            )
+            assert result == SUCCESS_RESULT
+            new_content = read_project_file(serena_agent.get_active_project(), relative_path)
+            assert repl in new_content
+
+    @pytest.mark.parametrize(
+        "serena_agent",
+        [
+            pytest.param(
+                Language.TYPESCRIPT,
+                marks=pytest.mark.typescript,
+            ),
+        ],
+        indirect=["serena_agent"],
+    )
+    def test_replace_content_regex_with_wildcard_ambiguous(self, serena_agent: SerenaAgent):
         """
         Tests that an ambiguous replacement where there is a larger match that internally contains
         a smaller match triggers an exception
