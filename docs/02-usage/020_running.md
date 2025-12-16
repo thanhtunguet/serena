@@ -11,6 +11,13 @@ This section describes
 In the following, we will refer to the command used to run Serena as `<serena>`,
 which you should replace with the appropriate command based on your chosen method.
 
+:::{note}
+By default, Serena will use language servers for code understanding and analysis.
+We provide a powerful alternative to that through the [Serena JetBrains Plugin](025_jetbrains_plugin),
+which has several advantages over the language server approach.
+Note that you don't have to use a JetBrains IDE as your editor to take advantage of this solution.
+:::
+
 ### Using uvx
 
 `uvx` is part of `uv`. It can be used to run the latest version of Serena directly from the repository, without an explicit local installation.

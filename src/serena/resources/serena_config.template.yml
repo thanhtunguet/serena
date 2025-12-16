@@ -55,8 +55,8 @@ included_optional_tools: []
 
 jetbrains: False
 # whether to enable JetBrains mode and use tools based on the Serena JetBrains IDE plugin
-# instead of language server-based tools
-# NOTE: The plugin is yet unreleased. This is for Serena developers only.
+# instead of language-server-based tools. Requires the Serena JetBrains plugin to be installed and
+# a JetBrains IDE instance to be running with an open project.
 
 
 default_max_tool_answer_chars: 150000

@@ -22,6 +22,8 @@ Instead, it can use code-centric tools like `find_symbol`, `find_referencing_sym
   <a href="lessons_learned.md"><img src="https://img.shields.io/badge/Lessons-Learned-7c4700?style=flat&logo=readthedocs&logoColor=white&labelColor=7c4700" alt="Lessons Learned" /></a>
 </p>
 
+> NEWS: Serena 1.0.0 and Serena JetBrains plugin have been released! Check out [the documentation](https://oraios.github.io/serena/02-usage/025_jetbrains_plugin.html).
+
 ## LLM Integration
 
 Serena provides the necessary [tools](https://oraios.github.io/serena/01-about/035_tools.html) for coding workflows, but an LLM is required to do the actual work,
