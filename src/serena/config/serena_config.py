@@ -166,10 +166,13 @@ class ProjectConfig(ToolInclusionDefinition, ToStringMixin):
         if not project_root.exists():
             raise FileNotFoundError(f"Project root not found: {project_root}")
         with LogTime("Project configuration auto-generation", logger=log):
+            log.info("Project root: %s", project_root)
             project_name = project_name or project_root.name
             if languages is None:
                 # determine languages automatically
+                log.info("Determining programming languages used in the project")
                 language_composition = determine_programming_language_composition(str(project_root))
+                log.info("Language composition: %s", language_composition)
                 if len(language_composition) == 0:
                     language_values = ", ".join([lang.value for lang in Language])
                     raise ValueError(
@@ -205,13 +208,16 @@ class ProjectConfig(ToolInclusionDefinition, ToStringMixin):
                         if enable:
                             languages_to_use.append(lang.value)
                     print()
+                log.info("Using languages: %s", languages_to_use)
             else:
                 languages_to_use = [lang.value for lang in languages]
             config_with_comments = cls.load_commented_map(PROJECT_TEMPLATE_FILE)
             config_with_comments["project_name"] = project_name
             config_with_comments["languages"] = languages_to_use
             if save_to_disk:
-                save_yaml(cls.path_to_project_yml(project_root), config_with_comments, preserve_comments=True)
+                project_yml_path = cls.path_to_project_yml(project_root)
+                log.info("Saving project configuration to %s", project_yml_path)
+                save_yaml(project_yml_path, config_with_comments, preserve_comments=True)
             return cls._from_dict(config_with_comments)
 
     @classmethod
