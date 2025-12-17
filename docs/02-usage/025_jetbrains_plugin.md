@@ -1,27 +1,53 @@
 # The Serena JetBrains Plugin
 
 The [JetBrains Plugin](https://plugins.jetbrains.com/plugin/28946-serena/) allows Serena to
-leverage the powerful code analysis capabilities of JetBrains IDEs,
-which offers several advantages over the default language server approach.
+leverage the powerful code analysis and editing capabilities of your JetBrains IDE.
 
-The proceeds from the plugin also allow us to dedicate more resources to further developing and improving Serena.
-We recommend the JetBrains plugin as the preferred way of using Serena, regardless of your choice of code editor.
+```{raw} html
+<p>
+<div id="marketplace-link">
+<script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
+<script>
+  MarketplaceWidget.setupMarketplaceWidget('install', 28946, "#marketplace-link");
+</script>
+</p>
+```
 
-After purchasing and installing the plugin, you need to configure `jetbrains: True` in your `serena_config.yml`.
-Then Serena will automatically connect to an open JetBrains IDE instance.
+We recommend the JetBrains plugin as the preferred way of using Serena,
+especially for users of JetBrains IDEs.
+
+**Purchasing the JetBrains Plugin supports the Serena project.**
+The proceeds from plugin sales allow us to dedicate more resources to further developing and improving Serena.
+
+## Configuring Serena 
+
+After installing the plugin, you need to configure Serena to use it.
+
+**Central Configuration**.
+Edit the global Serena configuration file located at `~/.serena/serena_config.yml` 
+(`%USERPROFILE%\.serena\config.yaml` on Windows).
+Change the `language_backend` setting as follows:
+
+```yaml
+language_backend: JetBrains
+```
+
+**Per-Instance Configuration**.
+The configuration setting in the global config file can be overridden on a 
+per-instance basis by providing the arguments `--language-backend JetBrains` when 
+launching the Serena MCP server.
 
 ## Advantages of the JetBrains Plugin
 
 There are multiple features that are only available when using the JetBrains plugin:
 
-- External libraries are indexed and can be referenced by Serena.
-- No additional runtime resources or downloads are needed for language servers.
-- Faster performance of tools.
-- First-class support for multiple languages and frameworks in a single project.
+* **External library indexing**: Dependencies and libraries are fully indexed and accessible to Serena
+* **No additional setup**: No need to download or configure separate language servers
+* **Enhanced performance**: Faster tool execution thanks to optimized IDE integration
+* **Multi-language excellence**: First-class support for polyglot projects with multiple languages and frameworks
 
-We are also working on additional features like a `move_symbol` tool and debugging related capabilities that
-will be available exclusively through the JetBrains plugin at first.
-
+We are also working on additional features like a `move_symbol` tool and debugging-related capabilities that
+will be available exclusively through the JetBrains plugin.
 
 ## Usage with Other Editors
 
