@@ -94,7 +94,7 @@ leverages the powerful code analysis capabilities of your JetBrains IDE.
 The plugin naturally supports all programming languages and frameworks that are supported by JetBrains IDEs, 
 including IntelliJ IDEA, PyCharm, Android Studio, AppCode, WebStorm, PhpStorm, RubyMine, GoLand, AppCode, CLion, Rider, and others.
 
-**[Get the Serena plugin from the JetBrains marketplace](https://plugins.jetbrains.com/plugin/28946-serena/)**
+<a href="https://plugins.jetbrains.com/plugin/28946-serena/"><img src="docs/_static/images/jetbrains-marketplace-button.png"></a>
 
 The plugin offers the most robust and most powerful Serena experience.  
 See our [documentation page](https://oraios.github.io/serena/02-usage/025_jetbrains_plugin.html) for further details and instructions.

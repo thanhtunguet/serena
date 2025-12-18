@@ -107,11 +107,9 @@ of choice.
 
 ```{raw} html
 <p>
-<div id="marketplace-link">
-<script src="https://plugins.jetbrains.com/assets/scripts/mp-widget.js"></script>
-<script>
-  MarketplaceWidget.setupMarketplaceWidget('install', 28946, "#marketplace-link");
-</script>
+<a href="https://plugins.jetbrains.com/plugin/28946-serena/">
+<img style="background-color:transparent;" src="../_static/images/jetbrains-marketplace-button.png">
+</a>
 </p>
 ```
 
