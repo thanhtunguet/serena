@@ -1,18 +1,19 @@
 # Language Support
 
-Serena's semantic code analysis and editing capabilities are powered by two 
-main technologies:
-
-* **Language servers** implementing the language server Protocol (LSP).
-* **The Serena JetBrains Plugin**, which leverages the powerful code analysis and editing
-  capabilities of your JetBrains IDE.
-
-Both backends provide a set of versatile code querying and editing functionalities 
+Serena provides a set of versatile code querying and editing functionalities
 based on symbolic understanding of the code.
 Equipped with these capabilities, Serena discovers and edits code just like a seasoned developer
 making use of an IDE's capabilities would.
 Serena can efficiently find the right context and do the right thing even in very large and
-complex projects! 
+complex projects!
+
+There are two alternative technologies powering these capabilities:
+
+* **Language servers** implementing the language server Protocol (LSP) — the free/open-source alternative.
+* **The Serena JetBrains Plugin**, which leverages the powerful code analysis and editing
+  capabilities of your JetBrains IDE.
+
+You can choose either of these backends depending on your preferences and requirements.
 
 ## Language Servers
 

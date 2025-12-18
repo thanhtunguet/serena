@@ -60,22 +60,27 @@ https://github.com/user-attachments/assets/6eaa9aa1-610d-4723-a2d6-bf1e487ba753
 
 ## Programming Language Support & Semantic Analysis Capabilities
 
-There are two backends for Serena's semantic code analysis and editing capabilities:
+Serena provides a set of versatile code querying and editing functionalities
+based on symbolic understanding of the code.
+Equipped with these capabilities, Serena discovers and edits code just like a seasoned developer
+making use of an IDE's capabilities would.
+Serena can efficiently find the right context and do the right thing even in very large and
+complex projects!
+
+There are two alternative technologies powering these capabilities:
 
 * **Language servers** implementing the language server Protocol (LSP) — the free/open-source alternative.
 * **The Serena JetBrains Plugin**, which leverages the powerful code analysis and editing
   capabilities of your JetBrains IDE.
 
-Both backends provide a set of versatile code querying and editing functionalities 
-based on symbolic understanding of the code.
-Equipped with these capabilities, Serena discovers and edits code just like a seasoned developer
-making use of an IDE's capabilities would.
-Serena can efficiently find the right context and do the right thing even in very large and
-complex projects! 
+You can choose either of these backends depending on your preferences and requirements.
 
 ### Language Servers
 
-Language servers provide support for a wide range of programming languages.
+Serena incorporates a powerful abstraction layer for the integration of language servers
+that implement the language server protocol (LSP).
+The underlying language servers are typically open-source projects (like Serena) or at least freely available for use.
+
 With Serena's LSP library, we provide **support for over 30 programming languages**, including
 AL, Bash, C#, C/C++, Clojure, Dart, Elixir, Elm, Erlang, Fortran, Go, Groovy (partial support), Haskell, Java, Javascript, Julia, Kotlin, Lua, Markdown, Nix, Perl, PHP, PowerShell, Python, R, Ruby, Rust, Scala, Swift, TOML, TypeScript, YAML, and Zig.
 
@@ -85,7 +90,7 @@ AL, Bash, C#, C/C++, Clojure, Dart, Elixir, Elm, Erlang, Fortran, Go, Groovy (pa
 ### The Serena JetBrains Plugin
 
 As an alternative to language servers, the [Serena JetBrains Plugin](https://plugins.jetbrains.com/plugin/28946-serena/)
-leverages the powerful code analysis capabilities of JetBrains IDEs. 
+leverages the powerful code analysis capabilities of your JetBrains IDE. 
 The plugin naturally supports all programming languages and frameworks that are supported by JetBrains IDEs, 
 including IntelliJ IDEA, PyCharm, Android Studio, AppCode, WebStorm, PhpStorm, RubyMine, GoLand, AppCode, CLion, Rider, and others.
 
