@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, Generic, Optional, TypeVar, cast
 from serena.symbol import JetBrainsSymbol, LanguageServerSymbol, LanguageServerSymbolRetriever, PositionInFile, Symbol
 from solidlsp import SolidLanguageServer, ls_types
 from solidlsp.ls import LSPFileBuffer
-from solidlsp.ls_types import extract_text_edits
 from solidlsp.ls_utils import PathUtils, TextUtils
 
 from .constants import DEFAULT_SOURCE_FILE_ENCODING
@@ -275,25 +274,68 @@ class LanguageServerCodeEditor(CodeEditor[LanguageServerSymbol]):
     def _find_unique_symbol(self, name_path: str, relative_file_path: str) -> LanguageServerSymbol:
         return self._symbol_retriever.find_unique(name_path, within_relative_path=relative_file_path)
 
-    def _apply_workspace_edit(self, workspace_edit: ls_types.WorkspaceEdit) -> list[str]:
-        """
-        Apply a WorkspaceEdit by making the changes to files.
+    def _relative_path_from_uri(self, uri: str) -> str:
+        return os.path.relpath(PathUtils.uri_to_path(uri), self.project_root)
 
-        :param workspace_edit: The WorkspaceEdit containing the changes to apply
-        :return: List of relative file paths that were modified
-        """
-        uri_to_edits = extract_text_edits(workspace_edit)
-        modified_relative_paths = []
+    class EditOperation(ABC):
+        @abstractmethod
+        def apply(self) -> None:
+            pass
 
-        # Handle the 'changes' format (URI -> list of TextEdits)
-        for uri, edits in uri_to_edits.items():
-            file_path = PathUtils.uri_to_path(uri)
-            relative_path = os.path.relpath(file_path, self._symbol_retriever.get_root_path())
-            modified_relative_paths.append(relative_path)
-            with self._edited_file_context(relative_path) as edited_file:
+    class EditOperationFileTextEdits(EditOperation):
+        def __init__(self, code_editor: "LanguageServerCodeEditor", file_uri: str, text_edits: list[ls_types.TextEdit]):
+            self._code_editor = code_editor
+            self._relative_path = code_editor._relative_path_from_uri(file_uri)
+            self._text_edits = text_edits
+
+        def apply(self) -> None:
+            with self._code_editor._edited_file_context(self._relative_path) as edited_file:
                 edited_file = cast(LanguageServerCodeEditor.EditedFile, edited_file)
-                edited_file.apply_text_edits(edits)
-        return modified_relative_paths
+                edited_file.apply_text_edits(self._text_edits)
+
+    class EditOperationRenameFile(EditOperation):
+        def __init__(self, code_editor: "LanguageServerCodeEditor", old_uri: str, new_uri: str):
+            self._code_editor = code_editor
+            self._old_relative_path = code_editor._relative_path_from_uri(old_uri)
+            self._new_relative_path = code_editor._relative_path_from_uri(new_uri)
+
+        def apply(self) -> None:
+            old_abs_path = os.path.join(self._code_editor.project_root, self._old_relative_path)
+            new_abs_path = os.path.join(self._code_editor.project_root, self._new_relative_path)
+            os.rename(old_abs_path, new_abs_path)
+
+    def _workspace_edit_to_edit_operations(self, workspace_edit: ls_types.WorkspaceEdit) -> list["LanguageServerCodeEditor.EditOperation"]:
+        operations: list[LanguageServerCodeEditor.EditOperation] = []
+
+        if "changes" in workspace_edit:
+            for uri, edits in workspace_edit["changes"].items():
+                operations.append(self.EditOperationFileTextEdits(self, uri, edits))
+
+        if "documentChanges" in workspace_edit:
+            for change in workspace_edit["documentChanges"]:
+                if "textDocument" in change and "edits" in change:
+                    operations.append(self.EditOperationFileTextEdits(self, change["textDocument"]["uri"], change["edits"]))
+                elif "kind" in change:
+                    if change["kind"] == "rename":
+                        operations.append(self.EditOperationRenameFile(self, change["oldUri"], change["newUri"]))
+                    else:
+                        raise ValueError(f"Unhandled document change kind: {change}; Please report to Serena developers.")
+                else:
+                    raise ValueError(f"Unhandled document change format: {change}; Please report to Serena developers.")
+
+        return operations
+
+    def _apply_workspace_edit(self, workspace_edit: ls_types.WorkspaceEdit) -> int:
+        """
+        Applies a WorkspaceEdit
+
+        :param workspace_edit: the edit to apply
+        :return: number of edit operations applied
+        """
+        operations = self._workspace_edit_to_edit_operations(workspace_edit)
+        for operation in operations:
+            operation.apply()
+        return len(operations)
 
     def rename_symbol(self, name_path: str, relative_file_path: str, new_name: str) -> str:
         symbol = self._find_unique_symbol(name_path, relative_file_path)
@@ -313,8 +355,14 @@ class LanguageServerCodeEditor(CodeEditor[LanguageServerSymbol]):
                 f"Language server for {lang_server.language_id} returned no rename edits for symbol '{name_path}'. "
                 f"The symbol might not support renaming."
             )
-        modified_files = self._apply_workspace_edit(rename_result)
-        msg = f"Successfully renamed '{name_path}' to '{new_name}' in {len(modified_files)} file(s)"
+        num_changes = self._apply_workspace_edit(rename_result)
+
+        if num_changes == 0:
+            raise ValueError(
+                f"Renaming symbol '{name_path}' to '{new_name}' resulted in no changes being applied; renaming may not be supported."
+            )
+
+        msg = f"Successfully renamed '{name_path}' to '{new_name}' ({num_changes} changes applied)"
         return msg
 
 
