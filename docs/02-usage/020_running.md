@@ -2,20 +2,20 @@
 
 Serena is a command-line tool with a variety of sub-commands.
 This section describes
- * varies ways of running Serena
+ * various ways of running Serena
  * how to run and configure the most important command, i.e. starting the MCP server
  * other useful commands.
-
-:::{tip}
-By default, Serena will use language servers for code understanding and analysis.    
-With the [Serena JetBrains Plugin](025_jetbrains_plugin), we recently introduced a powerful alternative,
-which has several advantages over the language server-based approach.
-:::
 
 ## Ways of Running Serena
 
 In the following, we will refer to the command used to run Serena as `<serena>`,
-which you should replace with the appropriate command based on your chosen method.
+which you should replace with the appropriate command based on your chosen method,
+as detailed below.
+
+In general, to get help, append `--help` to the command, i.e.
+
+    <serena> --help
+    <serena> <command> --help
 
 ### Using uvx
 
@@ -97,6 +97,12 @@ Given your preferred method of running Serena, you can start the MCP server usin
 
 Note that no matter how you run the MCP server, Serena will, by default, start a web-based dashboard on localhost that will allow you to inspect
 the server's operations, logs, and configuration.
+
+:::{tip}
+By default, Serena will use language servers for code understanding and analysis.    
+With the [Serena JetBrains Plugin](025_jetbrains_plugin), we recently introduced a powerful alternative,
+which has several advantages over the language server-based approach.
+:::
 
 ### Standard I/O Mode
 
