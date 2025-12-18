@@ -6,17 +6,16 @@ This section describes
  * how to run and configure the most important command, i.e. starting the MCP server
  * other useful commands.
 
+:::{tip}
+By default, Serena will use language servers for code understanding and analysis.    
+With the [Serena JetBrains Plugin](025_jetbrains_plugin), we recently introduced a powerful alternative,
+which has several advantages over the language server-based approach.
+:::
+
 ## Ways of Running Serena
 
 In the following, we will refer to the command used to run Serena as `<serena>`,
 which you should replace with the appropriate command based on your chosen method.
-
-:::{note}
-By default, Serena will use language servers for code understanding and analysis.
-We provide a powerful alternative to that through the [Serena JetBrains Plugin](025_jetbrains_plugin),
-which has several advantages over the language server approach.
-Note that you don't have to use a JetBrains IDE as your editor to take advantage of this solution.
-:::
 
 ### Using uvx
 
@@ -157,7 +156,11 @@ to get a list of all available options.
 Some useful options include:
 
   * `--project <path|name>`: specify the project to work on by name or path.
-  * `--project-from-cwd`: auto-detect project from current working directory (searches up for `.serena/project.yml` or `.git`, falls back to CWD). Intended only for CLI-based agents like Claude Code, Gemini and Codex.
+  * `--project-from-cwd`: auto-detect the project from current working directory   
+    (looking for a directory containing `.serena/project.yml` or `.git` in parent directories, activating the current directory if none is found);  
+    This option is intended for CLI-based agents like Claude Code, Gemini and Codex, which are typically started from within the project directory
+    and which do not change directories during their operation.
+  * `--language-backend JetBrains`: use the Serena JetBrains Plugin as the language backend (overriding the default backend configured in the central configuration)
   * `--context <context>`: specify the operation [context](contexts) in which Serena shall operate
   * `--mode <mode>`: specify one or more [modes](modes) to enable (can be passed several times)
   * `--enable-web-dashboard <true|false>`: enable or disable the web dashboard (enabled by default)
