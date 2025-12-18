@@ -22,7 +22,8 @@ Instead, it can use code-centric tools like `find_symbol`, `find_referencing_sym
   <a href="lessons_learned.md"><img src="https://img.shields.io/badge/Lessons-Learned-7c4700?style=flat&logo=readthedocs&logoColor=white&labelColor=7c4700" alt="Lessons Learned" /></a>
 </p>
 
-> NEWS: Serena 1.0.0 and Serena JetBrains plugin have been released! Check out [the documentation](https://oraios.github.io/serena/02-usage/025_jetbrains_plugin.html).
+> [!TIP]
+> The [**Serena JetBrains plugin**](#the-serena-jetbrains-plugin) has been released!
 
 ## LLM Integration
 
@@ -57,23 +58,41 @@ Note how Serena's tools enable Claude to find and edit the right symbols.
 
 https://github.com/user-attachments/assets/6eaa9aa1-610d-4723-a2d6-bf1e487ba753
 
-### Programming Language Support & Semantic Analysis Capabilities
+## Programming Language Support & Semantic Analysis Capabilities
 
-Serena's semantic code analysis capabilities build on **language servers** using the widely implemented
-language server protocol (LSP). The LSP provides a set of versatile code querying
-and editing functionalities based on symbolic understanding of the code.
+There are two backends for Serena's semantic code analysis and editing capabilities:
+
+* **Language servers** implementing the language server Protocol (LSP) — the free/open-source alternative.
+* **The Serena JetBrains Plugin**, which leverages the powerful code analysis and editing
+  capabilities of your JetBrains IDE.
+
+Both backends provide a set of versatile code querying and editing functionalities 
+based on symbolic understanding of the code.
 Equipped with these capabilities, Serena discovers and edits code just like a seasoned developer
 making use of an IDE's capabilities would.
 Serena can efficiently find the right context and do the right thing even in very large and
-complex projects! So not only is it free and open-source, it frequently achieves better results
-than existing solutions that charge a premium.
+complex projects! 
+
+### Language Servers
 
 Language servers provide support for a wide range of programming languages.
 With Serena's LSP library, we provide **support for over 30 programming languages**, including
 AL, Bash, C#, C/C++, Clojure, Dart, Elixir, Elm, Erlang, Fortran, Go, Groovy (partial support), Haskell, Java, Javascript, Julia, Kotlin, Lua, Markdown, Nix, Perl, PHP, PowerShell, Python, R, Ruby, Rust, Scala, Swift, TOML, TypeScript, YAML, and Zig.
 
 > [!IMPORTANT]
-> Some languages require additional dependencies to be installed; see the [Language Support](https://oraios.github.io/serena/01-about/020_programming-languages.html) page for details.
+> Some language servers require additional dependencies to be installed; see the [Language Support](https://oraios.github.io/serena/01-about/020_programming-languages.html) page for details.
+
+### The Serena JetBrains Plugin
+
+As an alternative to language servers, the [Serena JetBrains Plugin](https://plugins.jetbrains.com/plugin/28946-serena/)
+leverages the powerful code analysis capabilities of JetBrains IDEs. 
+The plugin naturally supports all programming languages and frameworks that are supported by JetBrains IDEs, 
+including IntelliJ IDEA, PyCharm, Android Studio, AppCode, WebStorm, PhpStorm, RubyMine, GoLand, AppCode, CLion, Rider, and others.
+
+**[Get the Serena plugin from the JetBrains marketplace](https://plugins.jetbrains.com/plugin/28946-serena/)**
+
+The plugin offers the most robust and most powerful Serena experience.  
+See our [documentation page](https://oraios.github.io/serena/02-usage/025_jetbrains_plugin.html) for further details and instructions.
 
 ## Quick Start
 
