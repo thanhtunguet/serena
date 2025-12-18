@@ -51,9 +51,9 @@ Serena comes with pre-defined contexts:
   Basic file operations and shell execution are assumed to be handled by the assistant's own capabilities.
 * `agent`: Designed for scenarios where Serena acts as a more autonomous agent, for example, when used with Agno.
 
-* Choose the context that best matches the type of integration you are using.
+Choose the context that best matches the type of integration you are using.
 
-Find the concrete definitions of these modes [here](https://github.com/oraios/serena/tree/main/src/serena/resources/config/contexts).
+Find the concrete definitions of the above contexts [here](https://github.com/oraios/serena/tree/main/src/serena/resources/config/contexts).
 
 When launching Serena, specify the context using `--context <context-name>`.
 Note that for cases where parameter lists are specified (e.g. Claude Desktop), you must add two parameters to the list.
