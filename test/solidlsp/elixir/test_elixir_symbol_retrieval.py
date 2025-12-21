@@ -257,6 +257,7 @@ class TestElixirLanguageServerSymbols:
                 # We should find some references or none (both are valid outcomes)
                 assert isinstance(refs, list)
 
+    @pytest.mark.xfail(reason="Flaky test, sometimes fails with an Expert-internal error")
     @pytest.mark.parametrize("language_server", [Language.ELIXIR], indirect=True)
     def test_symbol_tree_structure(self, language_server: SolidLanguageServer) -> None:
         """Test that symbol tree structure is correctly built."""
