@@ -648,6 +648,18 @@ class Facade:
     def description(self) -> str:
         return self._description
 
+    def set_name(self, name: str):
+        """
+        :param name: the new name of the facade
+        """
+        object.__setattr__(self, "_name", name)
+
+    def set_description(self, description: str):
+        """
+        :param description: the new description of the facade
+        """
+        object.__setattr__(self, "_description", description)
+
     @property
     def enabled_method_names(self) -> list[str]:
         return [m.name for m in self._methods.values() if m.enabled]

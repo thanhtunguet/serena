@@ -141,6 +141,7 @@ class BuiltinLanguageBackend(Enum):
     Use the Serena plugin in your JetBrains IDE.
     (requires the plugin to be installed and the project being worked on to be open in your IDE)
     """
+    OLB_JVM = "olb-jvm"
 
     @staticmethod
     def from_str(backend_str: str) -> "BuiltinLanguageBackend":
@@ -159,6 +160,10 @@ class BuiltinLanguageBackend(Enum):
             from .jetbrains.jetbrains_backend import LanguageBackendJetBrains
 
             return LanguageBackendJetBrains()
+        elif self == BuiltinLanguageBackend.OLB_JVM:
+            from .olb.olb_jvm_backend import LanguageBackendOraiosJVM
+
+            return LanguageBackendOraiosJVM()
         else:
             raise NotImplementedError
 
