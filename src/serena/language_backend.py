@@ -153,17 +153,17 @@ class BuiltinLanguageBackend(Enum):
     @cache
     def get_instance(self) -> LanguageBackend:
         if self == BuiltinLanguageBackend.LSP:
-            from .lsp.lsp_backend import LanguageBackendLSP
+            from .lsp.lsp_backend import LSPLanguageBackend
 
-            return LanguageBackendLSP()
+            return LSPLanguageBackend()
         elif self == BuiltinLanguageBackend.JETBRAINS:
-            from .jetbrains.jetbrains_backend import LanguageBackendJetBrains
+            from .jetbrains.jetbrains_backend import JetBrainsLanguageBackend
 
-            return LanguageBackendJetBrains()
+            return JetBrainsLanguageBackend()
         elif self == BuiltinLanguageBackend.OLB_JVM:
-            from .olb.olb_jvm_backend import LanguageBackendOraiosJVM
+            from .olb.olb_jvm_backend import OraiosJVMLanguageBackend
 
-            return LanguageBackendOraiosJVM()
+            return OraiosJVMLanguageBackend()
         else:
             raise NotImplementedError
 

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-class LanguageBackendJetBrains(LanguageBackend):
+class JetBrainsLanguageBackend(LanguageBackend):
     def __init__(self, key: str | None = None):
         super().__init__(key or BuiltinLanguageBackend.JETBRAINS.value)
 
@@ -66,6 +66,7 @@ class LanguageBackendJetBrains(LanguageBackend):
 
     @override
     def shutdown_active_project(self, project: "Project", timeout: float) -> None:
+        # Do nothing; IDE lifecycle is user-controlled
         pass
 
     @override
