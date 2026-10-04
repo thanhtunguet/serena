@@ -358,7 +358,7 @@ class SolidLanguageServer(ABC):
     the LS-specific version should be incremented instead.
     """
     RAW_DOCUMENT_SYMBOL_CACHE_FILENAME = "raw_document_symbols.pkl"
-    DOCUMENT_SYMBOL_CACHE_VERSION = 4
+    DOCUMENT_SYMBOL_CACHE_VERSION = 5
     """
     defines the version of the high-level document symbol format.
     This should be incremented whenever there is a change in the way document symbols are stored.
@@ -2173,7 +2173,10 @@ class SolidLanguageServer(ABC):
                 elif os.path.isfile(contained_dir_or_file_abs_path):
                     with self._open_file_context(contained_dir_or_file_rel_path, open_in_ls=False) as file_data:
                         document_symbols = self.request_document_symbols(contained_dir_or_file_rel_path, file_data)
-                        file_root_nodes = document_symbols.root_symbols
+
+                        # create shallow copies of the document root symbols to avoid modifying the cached symbols
+                        # when linking them to the file symbol #2126
+                        file_root_nodes = [r.copy() for r in document_symbols.root_symbols]
 
                         # Create file symbol, link with children
                         file_range = self._get_range_from_file_content(file_data.contents)
