@@ -59,6 +59,7 @@ from solidlsp.lsp_protocol_handler.server import (
 )
 from solidlsp.settings import SolidLSPSettings
 from solidlsp.util.cache import load_cache, save_cache
+from solidlsp.util.pickle_util import SafePickleLoader
 
 RawDocumentSymbol = Union[DocumentSymbol, SymbolInformation]
 """
@@ -388,6 +389,8 @@ class SolidLanguageServer(ABC):
             ".vscode",  # Doesn't contain symbols
         }
     )
+
+    _cache_loader = SafePickleLoader(allowed_classes=[DocumentSymbols, SymbolBody, SymbolKind])
 
     # To be overridden and extended by subclasses
     def is_ignored_dirname(self, dirname: str) -> bool:
@@ -3079,7 +3082,7 @@ class SolidLanguageServer(ABC):
         if cache_file.exists():
             log.info("Loading document symbols cache from %s", cache_file)
             try:
-                saved_cache = load_cache(str(cache_file), self._raw_document_symbols_cache_version())
+                saved_cache = load_cache(str(cache_file), self._raw_document_symbols_cache_version(), loader=self._cache_loader)
                 if saved_cache is not None:
                     self._raw_document_symbols_cache = saved_cache
                     log.info(f"Loaded {len(self._raw_document_symbols_cache)} entries from raw document symbols cache.")
@@ -3114,7 +3117,7 @@ class SolidLanguageServer(ABC):
         if cache_file.exists():
             log.info("Loading document symbols cache from %s", cache_file)
             try:
-                saved_cache = load_cache(str(cache_file), self._document_symbols_cache_version())
+                saved_cache = load_cache(str(cache_file), self._document_symbols_cache_version(), loader=self._cache_loader)
                 if saved_cache is not None:
                     self._document_symbols_cache = saved_cache
                     log.info(f"Loaded {len(self._document_symbols_cache)} entries from document symbols cache.")
