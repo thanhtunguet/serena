@@ -219,6 +219,7 @@ CLI:
   - Remove the redundant `dotenv` dependency; the `dotenv` module is provided by `python-dotenv`
   - Update `PyJWT` from 2.12.0 to 2.13.0
   - Upgrade the `mcp` SDK from 1.28.1 to 2.2.0
+  - Upgrade `urllib3` from 2.7.0 to 2.8.0
 
 # v1.7.0 (2026-08-09)
 
