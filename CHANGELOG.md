@@ -209,6 +209,7 @@ Status of the `main` branch. Changes prior to the next official version change w
     place the executable directly in `bin`, so activating an AL project failed with "AL Language
     Server executable not found" for users whose VS Code extension was on such a build. Both layouts
     are now probed, the platform subdirectory first (#2069)
+  - Remove support for migration of legacy cache format (document_symbols_cache_v23-06-25.pkl)
 
 CLI:
   - Fix `project index-file` command not using only the relevant language server to index the given file (#1965)

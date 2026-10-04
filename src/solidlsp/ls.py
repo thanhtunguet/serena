@@ -20,7 +20,7 @@ from typing import Any, Self, Union, cast
 
 import pathspec
 from sensai.util.helper import mark_used
-from sensai.util.pickle import getstate, load_pickle
+from sensai.util.pickle import getstate
 from sensai.util.string import ToStringMixin
 
 from serena.util.file_system import match_path
@@ -358,7 +358,6 @@ class SolidLanguageServer(ABC):
     the LS-specific version should be incremented instead.
     """
     RAW_DOCUMENT_SYMBOL_CACHE_FILENAME = "raw_document_symbols.pkl"
-    RAW_DOCUMENT_SYMBOL_CACHE_FILENAME_LEGACY_FALLBACK = "document_symbols_cache_v23-06-25.pkl"
     DOCUMENT_SYMBOL_CACHE_VERSION = 4
     """
     defines the version of the high-level document symbol format.
@@ -3051,34 +3050,6 @@ class SolidLanguageServer(ABC):
 
     def _load_raw_document_symbols_cache(self) -> None:
         cache_file = self.cache_dir / self.RAW_DOCUMENT_SYMBOL_CACHE_FILENAME
-
-        if not cache_file.exists():
-            # check for legacy cache to load to migrate
-            legacy_cache_file = self.cache_dir / self.RAW_DOCUMENT_SYMBOL_CACHE_FILENAME_LEGACY_FALLBACK
-            if legacy_cache_file.exists():
-                try:
-                    legacy_cache: dict[
-                        str, tuple[str, tuple[list[ls_types.UnifiedSymbolInformation], list[ls_types.UnifiedSymbolInformation]]]
-                    ] = load_pickle(legacy_cache_file)
-                    log.info("Migrating legacy document symbols cache with %d entries", len(legacy_cache))
-                    num_symbols_migrated = 0
-                    migrated_cache = {}
-                    for cache_key, (file_hash, (all_symbols, root_symbols)) in legacy_cache.items():
-                        if cache_key.endswith("-True"):  # include_body=True
-                            new_cache_key = cache_key[:-5]
-                            migrated_cache[new_cache_key] = (file_hash, root_symbols)
-                            num_symbols_migrated += len(all_symbols)
-                    log.info("Migrated %d document symbols from legacy cache", num_symbols_migrated)
-                    self._raw_document_symbols_cache = migrated_cache
-                    self._raw_document_symbols_cache_is_modified = True
-                    self._save_raw_document_symbols_cache()
-                    legacy_cache_file.unlink()
-                    return
-                except Exception as e:
-                    log.error("Error during cache migration: %s", e)
-                    return
-
-        # load existing cache (if any)
         if cache_file.exists():
             log.info("Loading document symbols cache from %s", cache_file)
             try:
