@@ -111,6 +111,9 @@ Status of the `main` branch. Changes prior to the next official version change w
     thread (#2038)
 
 * Language Servers:
+  - Scala: bump the default Metals version from 1.6.4 to 1.6.8. 1.6.4 bootstraps sbt-bloop 2.0.17,
+    which is not published for sbt 2, so `bloopInstall` fails to resolve and no build server is ever
+    started for an sbt 2 project.
   - Fix: `SafeZipExtractor` discarded Unix executable permission bits stored in extracted
     archives' `ZipInfo.external_attr` (a long-standing stdlib `zipfile` limitation,
     tracked upstream at https://github.com/python/cpython/pull/150061), leaving every
