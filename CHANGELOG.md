@@ -511,6 +511,7 @@ CLI:
     instead of accepting the deletion (change in `TextUtils.delete_text_between_positions`,
     which now accepts the end position similar to `insert_text_at_position`).
   - Fix: glob pattern expansion in `expand_braces` did not terminate with empty or unbalanced braces #1690
+  - Fix: Update model used by Anthropic token estimator
 
 * CLI:
   - Fix `--project-from-cwd` hijacking git worktrees nested under a Serena project. `find_project_root`
