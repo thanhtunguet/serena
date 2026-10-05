@@ -110,6 +110,10 @@ Status of the `main` branch. Changes prior to the next official version change w
     start and the tray icon never became usable. Menu refreshes are now marshalled onto the main
     thread (#2038)
 
+* Hooks:
+  - Add Codex plan-mode context and enforcement hooks driven by each tool's edit-capability metadata. #1854
+  - Document safer Codex hook defaults, timeouts, status messages, event mappings and troubleshooting guidance.
+
 * Language Servers:
   - Scala: bump the default Metals version from 1.6.4 to 1.6.8. 1.6.4 bootstraps sbt-bloop 2.0.17,
     which is not published for sbt 2, so `bloopInstall` fails to resolve and no build server is ever
