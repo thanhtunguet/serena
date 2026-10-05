@@ -223,6 +223,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     place the executable directly in `bin`, so activating an AL project failed with "AL Language
     Server executable not found" for users whose VS Code extension was on such a build. Both layouts
     are now probed, the platform subdirectory first (#2069)
+  - Fix: C# solution/project discovery traversed and opened paths matched by the configured ignore
+    patterns (incl. `.gitignore`), slowing down startup and loading ignored projects in Roslyn (#1999)
   - Remove support for migration of legacy cache format (document_symbols_cache_v23-06-25.pkl)
   - Fix: Avoid file/package symbols leaking into the high-level document symbol cache 
     as a result of `request_full_symbol_tree` linking document root symbols to file symbols
