@@ -183,6 +183,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     VTS initialization options now override defaults per top-level key rather than replacing the
     entire configuration; a user-provided `typescript` block replaces the ATA default too.
     `initializationOptions` takes precedence over the legacy `initialization_options` alias.
+  - Add experimental Devsense PHP Language Server support through the `php_devsense` language key and
+    pinned npm-managed `devsense-php-ls` installation (#710)
   - Fix: Erlang support now uses the maintained Erlang Language Platform (ELP) instead of the archived Erlang LS; Serena downloads a verified platform release (#771)
   - Fix: activating an additional TypeScript workspace folder could open a root-level tool
     config (`vitest.config.ts`, `jest.config.ts`, etc.) adjacent to `tsconfig.json` instead of
@@ -213,6 +215,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     already started (#1949)
   - Add: Installed Python packages can provide generic external language-server adapters through the
     `serena.language_servers` entry-point group for explicit use in `project.yml`
+  - Add experimental Devsense PHP Language Server support through the `php_devsense` language key and
+    pinned npm-managed `devsense-php-ls` installation (#710)
   - Add `java.custom_jre_path` to launch JDTLS with a validated external Java executable when the bundled
     JRE is too old for the installed JDTLS or project (#1469)
   - Fix: Nixd hover requests could return an empty first response while initial analysis was completing;
