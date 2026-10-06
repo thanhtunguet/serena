@@ -332,6 +332,9 @@ class TextUtils:
             else:
                 raise
 
+        if del_start_idx > del_end_idx:
+            raise ValueError(f"Start position ({start_line=}, {start_col=}) is after end position ({end_line=}, {end_col=})")
+
         deleted_text = text[del_start_idx:del_end_idx]
         new_text = text[:del_start_idx] + text[del_end_idx:]
         return new_text, deleted_text
