@@ -140,6 +140,7 @@ Status of the `main` branch. Changes prior to the next official version change w
     thread (#2038)
 
 * Language Servers:
+  - Add: configurable JDTLS Maven/Gradle import, `updateBuildConfiguration`, and autobuild settings under `ls_specific_settings.java` (#1976)
   - Fix: Angular, Vue and Svelte language servers opened `.tsx`/`.jsx` files with `typescript`/`javascript`
     language IDs, so JSX symbol ranges truncated at multi-line expressions (same class of bug as the
     typescript-language-server fix; `typescriptreact`/`javascriptreact` are now used). Regression tests

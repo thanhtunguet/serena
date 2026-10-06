@@ -773,6 +773,10 @@ The following settings are supported for the Java language server:
 | `maven_user_settings` | `~/.m2/settings.xml` | Path to Maven `settings.xml` |
 | `gradle_user_home` | `~/.gradle` | Path to Gradle user home directory |
 | `gradle_wrapper_enabled` | `false` | Use the project's Gradle wrapper (`gradlew`) instead of the bundled Gradle distribution. Enable this for projects with custom plugins or repositories. |
+| `maven_import_enabled` | `true` | Whether JDTLS imports Maven projects. Disable on Gradle-only repositories to skip `pom.xml` detection work. |
+| `gradle_import_enabled` | `true` | Whether JDTLS imports Gradle projects. Disable on Maven-only repositories to skip Gradle detection work. |
+| `update_build_configuration` | `interactive` | What JDTLS does after `pom.xml` / `build.gradle` changes: `disabled`, `interactive`, or `automatic`. Prefer `automatic` for headless agents that cannot answer a prompt. |
+| `autobuild_enabled` | `true` | Whether JDTLS rebuilds after edits. Disable on very large repositories to reduce background CPU. |
 | `gradle_java_home` | `null` | Path to the JDK used by Gradle. When unset, Gradle uses `JAVA_HOME` if `use_system_java_home` is enabled and `JAVA_HOME` is set; otherwise it falls back to Serena's bundled JRE. |
 | `use_system_java_home` | `false` | Use the system's `JAVA_HOME` environment variable for JDTLS itself and, when `gradle_java_home` is unset, Gradle import. Enable this if your project requires a specific JDK vendor or version for Gradle's JDK checks. |
 | `custom_jre_path` | `null` | Path to an executable JDK 21+ Java launcher used only for JDTLS instead of Serena's bundled JRE. Serena queries the JVM for its real `java.home`, so symlinked launchers are supported. This does not replace `gradle_java_home` or entries in `runtimes`; configure those independently when needed. |
