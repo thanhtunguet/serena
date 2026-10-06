@@ -76,7 +76,8 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Add `project remove`, which unregisters a project from the project list in `serena_config.yml`,
     addressed either by name or by path. Only the registry entry is removed; the project's own files,
     including its project configuration, are left untouched (#2029)
-
+  - Fix `project index-file` command not using only the relevant language server to index the given file (#1965)
+  
 * Tools:
   - Fix: `$!N` backreferences in regex-mode replacements expanded to the literal template text
     (e.g. `EA_INPUT$!1(...)`) when the referenced group existed but did not participate in the
@@ -219,8 +220,6 @@ Status of the `main` branch. Changes prior to the next official version change w
     already started (#1949)
   - Add: Installed Python packages can provide generic external language-server adapters through the
     `serena.language_servers` entry-point group for explicit use in `project.yml`
-  - Add experimental Devsense PHP Language Server support through the `php_devsense` language key and
-    pinned npm-managed `devsense-php-ls` installation (#710)
   - Add `java.custom_jre_path` to launch JDTLS with a validated external Java executable when the bundled
     JRE is too old for the installed JDTLS or project (#1469)
   - Fix: Nixd hover requests could return an empty first response while initial analysis was completing;
@@ -297,9 +296,6 @@ Status of the `main` branch. Changes prior to the next official version change w
     symbol (e.g. `a.run` calling `b.run` in Gleam) whenever the language server listed them after the
     target's declaration, mistaking them for imports; a referencing symbol is now only treated as an
     import if the reference lies within its name (#2133)
-
-CLI:
-  - Fix `project index-file` command not using only the relevant language server to index the given file (#1965)
 
 * Dependencies:
   - Fix: declare `click` as a direct dependency; all three console scripts (`serena`, `serena-agent`,
