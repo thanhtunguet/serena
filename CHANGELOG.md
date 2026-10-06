@@ -159,6 +159,7 @@ Status of the `main` branch. Changes prior to the next official version change w
     VTS initialization options now override defaults per top-level key rather than replacing the
     entire configuration; a user-provided `typescript` block replaces the ATA default too.
     `initializationOptions` takes precedence over the legacy `initialization_options` alias.
+  - Fix: Erlang support now uses the maintained Erlang Language Platform (ELP) instead of the archived Erlang LS; Serena downloads a verified platform release (#771)
   - Fix: activating an additional TypeScript workspace folder could open a root-level tool
     config (`vitest.config.ts`, `jest.config.ts`, etc.) adjacent to `tsconfig.json` instead of
     a real source file, starting the wrong inferred project and silently losing cross-package
