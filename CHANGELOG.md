@@ -119,6 +119,10 @@ Status of the `main` branch. Changes prior to the next official version change w
     successful Serena call. Add a `serena-hooks reset` command and a `PostToolUse` example matched to
     Serena's own tools to close the gap (#1852)
   - Add ZCode support (context `zcode`, hooks) #1837
+  - Add Codex plan-mode context and enforcement hooks driven by each tool's edit-capability metadata. #1854
+  - Document safer Codex hook defaults, timeouts, status messages, event mappings and troubleshooting guidance.
+  - Add DSH (DeepSeek Harness) as a Claude-compatible `serena-hooks` client, including activate, remind,
+    cleanup and auto-approve commands (#1869)
 
 * Dashboard:
   - Fix: DashboardManager's unsupported-mode fallback warning logged the literal text
@@ -129,10 +133,6 @@ Status of the `main` branch. Changes prior to the next official version change w
     versions punish with SIGTRAP, so the tray-manager process died within seconds of every agent
     start and the tray icon never became usable. Menu refreshes are now marshalled onto the main
     thread (#2038)
-
-* Hooks:
-  - Add Codex plan-mode context and enforcement hooks driven by each tool's edit-capability metadata. #1854
-  - Document safer Codex hook defaults, timeouts, status messages, event mappings and troubleshooting guidance.
 
 * Language Servers:
   - Fix: Angular, Vue and Svelte language servers opened `.tsx`/`.jsx` files with `typescript`/`javascript`
@@ -173,6 +173,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     version changed
   - Fix: A language server's cache directory was determined by the language_id rather than 
     the language server identifier's key. The two identifiers coincided in most cases.
+  - Add DSH (DeepSeek Harness) as a Claude-compatible `serena-hooks` client, including activate, remind,
+    cleanup and auto-approve commands (#1869)
   - Bump the bundled pyrefly to 1.2.0: 1.1.1 advertises `workspace/willRenameFiles` but answers it with `null`;
     1.2.0 answers with the import edits (measured on the Python test repo: the two absolute importers of a
     renamed module; a relative import of it, `from .models import`, is not rewritten by either)
