@@ -213,6 +213,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     already started (#1949)
   - Add: Installed Python packages can provide generic external language-server adapters through the
     `serena.language_servers` entry-point group for explicit use in `project.yml`
+  - Add `java.custom_jre_path` to launch JDTLS with a validated external Java executable when the bundled
+    JRE is too old for the installed JDTLS or project (#1469)
   - Fix: Nixd hover requests could return an empty first response while initial analysis was completing;
     retry the request within a bounded interval and keep the Nix hover regression coverage non-blocking while
     the current nixd fixture position remains unsupported (#1040)
