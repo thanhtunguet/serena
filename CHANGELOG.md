@@ -299,6 +299,7 @@ CLI:
     - Tools that traverse a subtree of the project (`list_dir`, `find_file`, `search_for_pattern`) now all have an 
       option `skip_ignored_files` (whether to skip ignored sub-paths).
       Note that if the base path is itself ignored, ignored paths cannot be considered.
+  - `read_file`: More lenient index handling, allowing negative indices for `end_index`
 
 * JetBrains:
   - `jet_brains_find_symbol`: Disallow wildcard-only search, delegating to overview tool if request is for file
