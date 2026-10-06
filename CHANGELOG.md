@@ -128,6 +128,7 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Document safer Codex hook defaults, timeouts, status messages, event mappings and troubleshooting guidance.
 
 * Language Servers:
+  - Fix: nixd's built-in `options` configuration now uses a schema-valid provider map (#1948)
   - Scala: bump the default Metals version from 1.6.4 to 1.6.8. 1.6.4 bootstraps sbt-bloop 2.0.17,
     which is not published for sbt 2, so `bloopInstall` fails to resolve and no build server is ever
     started for an sbt 2 project.
