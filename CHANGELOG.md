@@ -39,6 +39,10 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Fix: process-tree cleanup signaled descendant language-server processes without waiting for them,
     which could leave grandchildren as zombies; cleanup now waits for the discovered descendants (#1464)
   - Fix: `read_only` restriction in project definition was not applied to base tool set when in single-project context (#1938)
+  - Fix: a tsserver crash was only surfaced by the first cross-file query of a TypeScript language
+    server instance; later queries skipped the check together with the indexing wait and returned
+    an empty result as if the symbol had no references. Every cross-file query now raises
+    `TypeScriptServerCrashedError` once a crash has been observed
   - Fix: `MultiFileContentReplacer` accounted for the exclusivity of the match end in neither
     `ReplacementOccurrence.end_line` nor the region rendered by `render_occurrence_diff`, so a
     replacement whose pattern consumed a line break reported the match as ending on the following
