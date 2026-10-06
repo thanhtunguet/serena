@@ -223,6 +223,7 @@ Status of the `main` branch. Changes prior to the next official version change w
     symbols, which was applied outside the caches; the processing of language servers that post-process
     symbols (e.g. Go, Nix, Fortran, F#, Vue) was therefore repeated on every request or, if it mutated
     symbols in place, re-applied to already processed cached results
+  - Elixir: Bump Expert to v0.1.10, fixing several behavioural issues (#2098)
   - Fix: the AL language server executable was only searched for in a platform-specific subdirectory of
     the extension's `bin` directory (`bin/win32/...` on Windows). Some AL extension builds (e.g.
     18.0.2732683, as opposed to the 18.0.2242655 that Serena pins) have no such subdirectories and
