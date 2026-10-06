@@ -350,22 +350,23 @@ class LanguageServerId(Enum):
     """
 
     @classmethod
-    def iter_all(cls, include_experimental: bool = True, include_non_programming_languages: bool = True) -> Iterable[Self]:
+    def iter_all(
+        cls, include_experimental: bool = True, include_secondary: bool = True, include_non_programming_languages: bool = True
+    ) -> Iterable[Self]:
         for lang in cls:
             if include_experimental or not lang.is_experimental():
-                if include_non_programming_languages or lang.is_programming_language():
-                    yield lang
+                if include_secondary or not lang.is_secondary():
+                    if include_non_programming_languages or lang.is_programming_language():
+                        yield lang
 
     def get_key(self) -> str:
         return self.value
 
-    def is_experimental(self) -> bool:
+    def is_secondary(self) -> bool:
         """
-        Check if the language server is experimental (potentially not robust),
-        secondary (not default for respective language) or deprecated.
+        Check if the language server is secondary (not default for respective language/file extension).
         """
         return self in {
-            self.ANSIBLE,
             self.TYPESCRIPT_VTS,
             self.PYTHON_JEDI,
             self.PYTHON_TY,
@@ -375,20 +376,36 @@ class LanguageServerId(Enum):
             self.RUBY_SOLARGRAPH,
             self.PHP_PHPACTOR,
             self.PHP_PHPANTOM,
-            self.JULIA_FATOU,
             self.PHP_DEVSENSE,
-            self.MARKDOWN,
-            self.LATEX,
-            self.YAML,
-            self.JSON,
-            self.TOML,
-            self.GROOVY,
+            self.JULIA_FATOU,
+            self.ANSIBLE,  # overlaps with YAML (same extension)
             self.CPP_CCLS,
+        }
+
+    def is_experimental(self) -> bool:
+        """
+        Check if the language server is experimental (potentially not robust)
+        and therefore should not be auto-enabled (explicit opt-in by user expected).
+        """
+        return self in {
+            self.GROOVY,
             self.SOLIDITY,
             self.HTML,
             self.SCSS,
             self.ANGULAR,
             self.DENO,
+        }
+
+    def is_superset_language(self) -> bool:
+        """
+        Check if the language server is a superset of another language (e.g. Vue/Svelte are supersets of TypeScript/JavaScript).
+        This is used to assign lower priority to these languages when breaking ties between languages.
+        """
+        return self in {
+            self.VUE,  # superset of TypeScript/JavaScript
+            self.SVELTE,  # superset of TypeScript/JavaScript
+            self.ASTRO,  # superset of TypeScript/JavaScript
+            self.ANGULAR,  # superset of TypeScript/JavaScript
         }
 
     def is_programming_language(self) -> bool:
@@ -404,18 +421,17 @@ class LanguageServerId(Enum):
         """
         :return: priority of the language for breaking ties between languages; higher is more important.
         """
-        # experimental languages have the lowest priority
-        if self.is_experimental():
+        # experimental, secondary and non-programming languages have the lowest priority
+        # (Serena will not auto-enable them, and they will only be used if explicitly requested by the user)
+        if self.is_experimental() or self.is_secondary() or not self.is_programming_language():
             return 0
         # We assign lower priority to languages that are supersets of others, such that
         # the "larger" language is only chosen when it matches more strongly
-        match self:
-            # languages that are supersets of others (Vue/Svelte are supersets of TypeScript/JavaScript)
-            case self.VUE | self.SVELTE | self.ASTRO:
-                return 1
-            # regular languages
-            case _:
-                return 2
+        if self.is_superset_language():
+            return 1
+        # regular languages
+        else:
+            return 2
 
     def supports_implementation_request(self) -> bool:
         """
@@ -1014,6 +1030,17 @@ class ExternalLanguageServerId(LanguageServerIdLike):
         return self._implementation
 
     def get_priority(self) -> int:
+        """
+        Gets the priority of the language server for determining which languages are considered for
+        auto-detection and for breaking ties between languages.
+        Specifically, 0 used for experimentaL/secondary/non-programming languages, which are not
+        considered for auto-detection and only used if explicitly requested by the user.
+        1 used for superset languages, which are considered for auto-detection but have lower priority than regular languages
+        (such that they will be selected only if the match a greater number of files than the other language).
+        2 used for regular languages.
+
+        :return: the priority (higher is more important)
+        """
         return self._priority
 
 
