@@ -22,6 +22,7 @@ EDIT_CAPABLE_TOOL_NAMES: frozenset[str] = frozenset(
         "replace_lines",
         "replace_symbol_body",
         "safe_delete_symbol",
+        "serena_repl",
         "write_memory",
     }
 )
