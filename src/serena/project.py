@@ -20,7 +20,7 @@ from serena.language_backend import LanguageBackend
 from serena.ls_manager import LanguageServerFactory, LanguageServerManager
 from serena.memories.memory_manager import MemoryManager
 from serena.util.file_proxy import FileCollection, FileProxy
-from serena.util.file_system import GitignoreParser, dir_entry_from_path, match_path, scan_directory, walk_dir_entries
+from serena.util.file_system import GitignoreParser, dir_entry_from_path, match_path, walk_dir_entries
 from serena.util.text_utils import MatchedConsecutiveLines, search_files
 from solidlsp import SolidLanguageServer
 from solidlsp.ls_config import LanguageServerIdLike
@@ -274,10 +274,9 @@ class Project(ToStringMixin):
         :param is_file: whether the path exists and is a file, for callers that already know;
             see :meth:`_is_ignored_relative_path`. `None` determines it from the filesystem.
         """
-        path = Path(path)
-        if path.is_absolute():
+        if os.path.isabs(path):
             try:
-                relative_path = path.relative_to(self.project_root)
+                relative_path = os.path.relpath(path, start=self.project_root)
             except ValueError:
                 # If the path is not relative to the project root, we consider it as an absolute path outside the project
                 # (which we ignore)
@@ -354,7 +353,7 @@ class Project(ToStringMixin):
             if self.is_ignored_path(relative_path):
                 raise ValueError(f"Path {relative_path} is ignored")
 
-    class SourceFile:
+    class ProjectFile:
         def __init__(self, dir_entry: os.DirEntry, rel_path: str):
             self.dir_entry = dir_entry
             """
@@ -366,29 +365,73 @@ class Project(ToStringMixin):
             """
 
         @staticmethod
-        def from_abs_path(abs_path: str, project: "Project") -> "Project.SourceFile":
+        def from_abs_path(abs_path: str, project: "Project") -> "Project.ProjectFile":
             rel_path = os.path.relpath(abs_path, start=project.project_root)
             dir_entry = dir_entry_from_path(abs_path)
-            return Project.SourceFile(dir_entry, rel_path)
+            return Project.ProjectFile(dir_entry, rel_path)
 
-    def gather_source_files(self, relative_path: str = "") -> list[SourceFile]:
-        """Retrieves all (non-ignored) source files, optionally limited to the given path
+    def gather_source_files(self, relative_path: str = "") -> list[ProjectFile]:
+        """
+        Retrieves all (non-ignored) project source files, optionally limited to the given path.
+        The limitation to source files depends on the language backend and its identification of
+        source files.
 
         :param relative_path: if provided, restrict search to this path
-        :return: list of source files
+        :return: list of project files
+        """
+        return self.gather_project_files(relative_path=relative_path, code_files_only=True)
+
+    def gather_project_files(
+        self, relative_path: str = "", code_files_only: bool = False, skip_ignored_files: bool = True
+    ) -> list[ProjectFile]:
+        """
+        Retrieves all (non-ignored) project files, optionally limited to the given path
+
+        :param relative_path: if provided, restrict search to this path
+        :param code_files_only: whether to ignore files that are not source files.
+            The identification of source files depends on the language backend.
+        :return: list of project files
         """
         start_path = os.path.join(self.project_root, relative_path)
         if not os.path.exists(start_path):
             raise FileNotFoundError(f"Root directory {start_path} not found.")
+
         if os.path.isfile(start_path):
-            if not self.is_ignored_path(start_path, ignore_non_source_files=True, is_file=True):
-                return [self.SourceFile.from_abs_path(start_path, self)]
+            if not self.is_ignored_path(start_path, ignore_non_source_files=code_files_only, is_file=True):
+                return [self.ProjectFile.from_abs_path(start_path, self)]
             else:
                 return []
         else:
+            # we can only apply the ignore rules if the start path is not itself ignored
+            # (if the root is ignored, we return all files under it, since the caller explicitly requested them)
+            can_apply_ignore_rules = not self.is_ignored_path(start_path)
 
-            def is_ignored_dir(d: os.DirEntry) -> bool:
-                return self.is_ignored_path(d.path, is_file=False)
+            if skip_ignored_files and can_apply_ignore_rules:
+
+                def is_ignored_dir(d: os.DirEntry) -> bool:
+                    try:
+                        rel_path = os.path.relpath(d.path, start=self.project_root)
+                    except ValueError:
+                        log.warning(
+                            "Ignoring directory '%s' because it appears to be outside of the project root (%s)", d.path, self.project_root
+                        )
+                        return True
+                    return self._is_ignored_relative_path(rel_path, is_file=False)
+
+                def is_ignored_file(rel_path: str, abs_path: str) -> bool:
+                    return self._is_ignored_relative_path(rel_path, ignore_non_source_files=code_files_only, is_file=True)
+            else:
+
+                def is_ignored_dir(d: os.DirEntry) -> bool:
+                    return False
+
+                language_backend = self.language_backend
+
+                def is_ignored_file(rel_path: str, abs_path: str) -> bool:
+                    if code_files_only:
+                        return not language_backend.is_source_file(abs_path, self)
+                    else:
+                        return False
 
             # collect non-ignored files
             result = []
@@ -400,13 +443,13 @@ class Project(ToStringMixin):
                             rel_file_path = os.path.relpath(abs_file_path, start=self.project_root)
                         except Exception:
                             log.warning(
-                                "Ignoring path '%s' because it appears to be outside of the project root (%s)",
+                                "Ignoring file '%s' because it appears to be outside of the project root (%s)",
                                 abs_file_path,
                                 self.project_root,
                             )
                             continue
-                        if not self._is_ignored_relative_path(rel_file_path, ignore_non_source_files=True, is_file=True):
-                            result.append(self.SourceFile(file, rel_file_path))
+                        if not is_ignored_file(rel_file_path, abs_file_path):
+                            result.append(self.ProjectFile(file, rel_file_path))
                     except FileNotFoundError:
                         log.warning(
                             f"File {abs_file_path} not found (possibly due it being a symlink), skipping it in request_parsed_files",
@@ -427,29 +470,11 @@ class Project(ToStringMixin):
             # single external path: create appropriate proxy
             file_collection = FileCollection([FileProxy.from_project_relative_path(self, relative_path)])
         else:
-            # path is a local project path
-            abs_path = os.path.join(self.project_root, relative_path)
-            if not os.path.exists(abs_path):
-                raise FileNotFoundError(f"Relative path {relative_path} does not exist.")
+            project_files = self.gather_project_files(
+                relative_path=relative_path, code_files_only=code_files_only, skip_ignored_files=skip_ignored_files
+            )
+            file_collection = FileCollection.from_project_files(project_files, self)
 
-            if code_files_only:
-                source_files = self.gather_source_files(relative_path=relative_path)
-                rel_paths = [file.rel_path for file in source_files]
-                file_collection = FileCollection.from_local_project_paths(rel_paths, self)
-            else:
-                abs_path = os.path.join(self.project_root, relative_path)
-                if os.path.isfile(abs_path):
-                    rel_paths_to_search = [relative_path]
-                else:
-                    is_ignored_path_fn = self.get_is_ignored_path_fn(base_path=relative_path, skip_ignored_paths=skip_ignored_files)
-                    _dirs, rel_paths_to_search = scan_directory(
-                        path=abs_path,
-                        recursive=True,
-                        is_ignored_dir=is_ignored_path_fn,
-                        is_ignored_file=is_ignored_path_fn,
-                        relative_to=self.project_root,
-                    )
-                file_collection = FileCollection.from_local_project_paths(rel_paths_to_search, self)
         return file_collection
 
     def search_project_files_for_pattern(
