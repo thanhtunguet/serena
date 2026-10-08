@@ -31,6 +31,51 @@ def _create_test_project(
     )
 
 
+class TestProject:
+    def test_project_files(self, tmp_path: Path) -> None:
+        # create a project with root and nested git directories and ignore rules
+        (tmp_path / ".git").mkdir()
+        (tmp_path / "foo.py").touch()
+        (tmp_path / "README.md").touch()
+        (tmp_path / "bar" / ".git").mkdir(parents=True)
+        (tmp_path / "ignored.py").touch()
+        (tmp_path / "bar" / "bar_ignored.py").touch()
+        (tmp_path / "bar" / "bar.py").touch()
+        (tmp_path / ".gitignore").write_text("/ignored.py\n/.serena\n", encoding="utf-8")
+        (tmp_path / "bar" / ".gitignore").write_text("/bar_ignored.py\n", encoding="utf-8")
+
+        # instantiate the project with default ignore settings
+        project = Project(
+            project_root=str(tmp_path),
+            project_config=ProjectConfig(project_name="test_project", language_servers=[LanguageServerId.PYTHON]),
+            serena_config=SerenaConfig().with_headless_mode_overrides(),
+        )
+
+        # .git directories are ignored anywhere in the project
+        assert project.is_ignored_path(".git")
+        assert project.is_ignored_path("bar/.git")
+
+        # files explicitly ignored in .gitignore are ignored
+        assert project.is_ignored_path("ignored.py")
+        assert project.is_ignored_path("bar/bar_ignored.py")
+
+        # verify ordinary paths are not ignored
+        assert not project.is_ignored_path("foo.py")
+        assert not project.is_ignored_path("README.md")
+        assert not project.is_ignored_path(".gitignore")
+        assert not project.is_ignored_path("bar")
+        assert not project.is_ignored_path("bar/.gitignore")
+        assert not project.is_ignored_path("bar/bar.py")
+
+        # check source files
+        source_files = project.gather_source_files()
+        assert len(source_files) == 2
+
+        # check non-ignored files
+        non_ignored_files = project.gather_project_files(skip_ignored_files=True)
+        assert len(non_ignored_files) == 5
+
+
 class TestGlobalIgnoredPaths:
     """Tests for system-global ignored_paths feature."""
 
