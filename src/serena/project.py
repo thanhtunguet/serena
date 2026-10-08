@@ -20,7 +20,7 @@ from serena.language_backend import LanguageBackend
 from serena.ls_manager import LanguageServerFactory, LanguageServerManager
 from serena.memories.memory_manager import MemoryManager
 from serena.util.file_proxy import FileCollection, FileProxy
-from serena.util.file_system import GitignoreParser, match_path, scan_directory
+from serena.util.file_system import GitignoreParser, dir_entry_from_path, match_path, scan_directory, walk_dir_entries
 from serena.util.text_utils import MatchedConsecutiveLines, search_files
 from solidlsp import SolidLanguageServer
 from solidlsp.ls_config import LanguageServerIdLike
@@ -354,44 +354,65 @@ class Project(ToStringMixin):
             if self.is_ignored_path(relative_path):
                 raise ValueError(f"Path {relative_path} is ignored")
 
-    def gather_source_files(self, relative_path: str = "") -> list[str]:
-        """Retrieves relative paths of all source files, optionally limited to the given path
+    class SourceFile:
+        def __init__(self, dir_entry: os.DirEntry, rel_path: str):
+            self.dir_entry = dir_entry
+            """
+            the directory entry which can be used to retrieve metadata
+            """
+            self.rel_path = rel_path
+            """
+            the path relative to the project root
+            """
+
+        @staticmethod
+        def from_abs_path(abs_path: str, project: "Project") -> "Project.SourceFile":
+            rel_path = os.path.relpath(abs_path, start=project.project_root)
+            dir_entry = dir_entry_from_path(abs_path)
+            return Project.SourceFile(dir_entry, rel_path)
+
+    def gather_source_files(self, relative_path: str = "") -> list[SourceFile]:
+        """Retrieves all (non-ignored) source files, optionally limited to the given path
 
         :param relative_path: if provided, restrict search to this path
+        :return: list of source files
         """
-        rel_file_paths = []
         start_path = os.path.join(self.project_root, relative_path)
         if not os.path.exists(start_path):
-            raise FileNotFoundError(f"Relative path {start_path} not found.")
+            raise FileNotFoundError(f"Root directory {start_path} not found.")
         if os.path.isfile(start_path):
-            return [relative_path]
+            if not self.is_ignored_path(start_path, ignore_non_source_files=True, is_file=True):
+                return [self.SourceFile.from_abs_path(start_path, self)]
+            else:
+                return []
         else:
-            # os.walk hands back directories and files separately, so `is_file` is already known here and
-            # does not have to be re-derived from the filesystem for every one of them.
-            for root, dirs, files in os.walk(start_path, followlinks=True):
-                # prevent recursion into ignored directories
-                dirs[:] = [d for d in dirs if not self.is_ignored_path(os.path.join(root, d), is_file=False)]
 
-                # collect non-ignored files
+            def is_ignored_dir(d: os.DirEntry) -> bool:
+                return self.is_ignored_path(d.path, is_file=False)
+
+            # collect non-ignored files
+            result = []
+            for root, dirs, files in walk_dir_entries(start_path, followlinks=True, is_ignored_dir=is_ignored_dir):
                 for file in files:
-                    abs_file_path = os.path.join(root, file)
+                    abs_file_path = file.path
                     try:
-                        if not self.is_ignored_path(abs_file_path, ignore_non_source_files=True, is_file=True):
-                            try:
-                                rel_file_path = os.path.relpath(abs_file_path, start=self.project_root)
-                            except Exception:
-                                log.warning(
-                                    "Ignoring path '%s' because it appears to be outside of the project root (%s)",
-                                    abs_file_path,
-                                    self.project_root,
-                                )
-                                continue
-                            rel_file_paths.append(rel_file_path)
+                        try:
+                            rel_file_path = os.path.relpath(abs_file_path, start=self.project_root)
+                        except Exception:
+                            log.warning(
+                                "Ignoring path '%s' because it appears to be outside of the project root (%s)",
+                                abs_file_path,
+                                self.project_root,
+                            )
+                            continue
+                        if not self._is_ignored_relative_path(rel_file_path, ignore_non_source_files=True, is_file=True):
+                            result.append(self.SourceFile(file, rel_file_path))
                     except FileNotFoundError:
                         log.warning(
                             f"File {abs_file_path} not found (possibly due it being a symlink), skipping it in request_parsed_files",
                         )
-            return rel_file_paths
+
+            return result
 
     def create_file_collection(self, relative_path: str, *, code_files_only: bool, skip_ignored_files: bool) -> FileCollection:
         """
@@ -412,8 +433,9 @@ class Project(ToStringMixin):
                 raise FileNotFoundError(f"Relative path {relative_path} does not exist.")
 
             if code_files_only:
-                relative_file_paths = self.gather_source_files(relative_path=relative_path)
-                file_collection = FileCollection.from_local_project_paths(relative_file_paths, self)
+                source_files = self.gather_source_files(relative_path=relative_path)
+                rel_paths = [file.rel_path for file in source_files]
+                file_collection = FileCollection.from_local_project_paths(rel_paths, self)
             else:
                 abs_path = os.path.join(self.project_root, relative_path)
                 if os.path.isfile(abs_path):

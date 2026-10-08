@@ -996,30 +996,30 @@ class ProjectCommands(AutoRegisteringGroup):
                 # Find first non-empty file that can be analyzed
                 log.info("Searching for analyzable files...")
                 files = proj.gather_source_files()
-                target_file = None
+                target_rel_path = None
 
-                for file_path in files:
+                for source_file in files:
                     try:
-                        full_path = os.path.join(project_path, file_path)
+                        full_path = source_file.dir_entry.path
                         if os.path.getsize(full_path) > 1000:
-                            target_file = file_path
-                            log.info("Found analyzable file: %s", target_file)
+                            target_rel_path = source_file.rel_path
+                            log.info("Found analyzable file: %s", target_rel_path)
                             break
                     except (OSError, FileNotFoundError):
                         continue
 
-                if not target_file:
+                if not target_rel_path:
                     raise ProjectCommands._HealthCheckFailure("No analyzable files found")
 
                 api = LspApi(agent)
 
                 # Test 1: symbols overview
-                log.info("Testing get_symbols_overview on file: %s", target_file)
-                overview = agent.execute_task(lambda: api.get_symbols_overview(target_file))
+                log.info("Testing get_symbols_overview on file: %s", target_rel_path)
+                overview = agent.execute_task(lambda: api.get_symbols_overview(target_rel_path))
                 log.info(f"get_symbols_overview returned: {overview.represent()}")
 
                 if len(overview) == 0:
-                    raise ProjectCommands._HealthCheckFailure(f"No symbols found in target file {target_file}")
+                    raise ProjectCommands._HealthCheckFailure(f"No symbols found in target file {target_rel_path}")
 
                 # Extract suitable symbol (prefer class or function over variables)
                 preferred_kinds = {SymbolKind.Class, SymbolKind.Function, SymbolKind.Method, SymbolKind.Constructor}
@@ -1037,7 +1037,7 @@ class ProjectCommands(AutoRegisteringGroup):
                 log.info("Testing find_symbol for symbol: %s", symbol_name)
                 with LspApi.find_symbol_dict_grouper_.disabled_context():
                     find_symbol_result = agent.execute_task(
-                        lambda: api.find_symbol(symbol_name, relative_path=target_file, include_body=True).represent()
+                        lambda: api.find_symbol(symbol_name, relative_path=target_rel_path, include_body=True).represent()
                     )
                 find_symbol_data = json.loads(find_symbol_result)
                 log.info("find_symbol found %d matches for symbol %s", len(find_symbol_data), symbol_name)
@@ -1049,7 +1049,7 @@ class ProjectCommands(AutoRegisteringGroup):
                 try:
                     with LspApi.references_grouper_.disabled_context():
                         find_refs_result = agent.execute_task(
-                            lambda: api.find_referencing_symbols(symbol_name, relative_path=target_file).represent()
+                            lambda: api.find_referencing_symbols(symbol_name, relative_path=target_rel_path).represent()
                         )
                         find_refs_data = json.loads(find_refs_result)
                         log.info("find_referencing_symbols found %d references for symbol %s", len(find_refs_data), symbol_name)

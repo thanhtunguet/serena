@@ -178,6 +178,60 @@ def scan_directory(
     return ScanResult(directories, files)
 
 
+def dir_entry_from_path(path: str) -> os.DirEntry:
+    parent, name = os.path.split(os.path.normpath(path))
+    for entry in os.scandir(parent or "."):
+        if entry.name == name:
+            return entry
+    raise FileNotFoundError(f"No such file or directory: '{path}'")
+
+
+def walk_dir_entries(
+    top, topdown=True, onerror=None, followlinks=False, is_ignored_dir: Callable[[os.DirEntry], bool] = lambda x: False
+) -> Iterator[tuple[str, list[os.DirEntry], list[os.DirEntry]]]:
+    """
+    Variant of os.walk which yields os.DirEntry objects instead of strings.
+    This allows for more efficient file system access, as it avoids additional stat calls.
+
+    :param top: the root directory to start walking from
+    :param topdown: if True, yield the directory before its subdirectories; if False, yield the subdirectories before the directory
+    :param onerror: a function to call with an OSError instance if an error occurs while accessing a directory
+    :param followlinks: if True, follow symbolic links to directories; if False, do not follow them
+    :param is_ignored_dir: a function to determine whether a directory should be ignored; it takes an os.DirEntry and returns True if
+        the directory should be ignored
+    :return: an iterator yielding tuples of (directory path, list of subdirectory entries, list of file entries)
+    """
+    try:
+        with os.scandir(top) as it:
+            entries = list(it)
+    except OSError as error:
+        if onerror is not None:
+            onerror(error)
+        return
+
+    dirs = []
+    files = []
+
+    for entry in entries:
+        try:
+            is_dir = entry.is_dir()
+        except OSError:
+            is_dir = False
+
+        (dirs if is_dir else files).append(entry)
+
+    if topdown:
+        yield top, dirs, files
+
+    for entry in dirs:
+        if followlinks or not entry.is_symlink():
+            if not is_ignored_dir(entry):
+                yield from walk_dir_entries(entry.path, topdown, onerror, followlinks, is_ignored_dir=is_ignored_dir)
+
+    if not topdown:
+        yield top, dirs, files
+
+
 def find_all_non_ignored_files(repo_root: str) -> list[str]:
     """
     Find all non-ignored files in the repository, respecting all gitignore files in the repository.
