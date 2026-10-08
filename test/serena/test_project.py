@@ -238,7 +238,6 @@ class TestProjectIgnoreRulesWithGlobalPathsAndGitignore:
                 serena_config=SerenaConfig(gui_log_window=False, web_dashboard=False, ignored_paths=[]),
             )
             assert r"a\[bc\]/drop.txt" in project._ignored_patterns
-            assert project._ignored_patterns[0] == project._ignored_patterns[-1] == "build/cache/"
             assert "build/cache/**/*.tmp" not in project._ignored_patterns
             assert project.is_ignored_path("a[bc]/drop.txt")
             assert not project.is_ignored_path("ab/drop.txt")

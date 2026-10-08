@@ -80,13 +80,17 @@ class Project(ToStringMixin):
 
     def _gather_ignorespec(self) -> None:
         with LogTime(f"Gathering ignore spec for project {self.project_config.project_name}", logger=log):
+            # gather ignored paths from the global configuration, project configuration, and gitignore files
             try:
-                # gather ignored paths from the global configuration, project configuration, and gitignore files
-                global_ignored_paths = self.serena_config.ignored_paths
+                # extend the ignored paths from the global config with ".git" to ensure that .git folders (anywhere in the project)
+                # are always ignored
+                global_ignored_paths = [".git"] + self.serena_config.ignored_paths
+
                 # Only configured paths need separator normalization; gitignore patterns already use POSIX syntax and escapes.
                 configured_patterns = [
                     pattern.replace(os.path.sep, "/") for pattern in [*global_ignored_paths, *self.project_config.ignored_paths]
                 ]
+
                 ignored_patterns = list(configured_patterns)
                 if len(global_ignored_paths) > 0:
                     log.info(f"Using {len(global_ignored_paths)} ignored paths from the global configuration.")
@@ -253,13 +257,6 @@ class Project(ToStringMixin):
                 # non-source files are ignored
                 if not self.language_backend.is_source_file(abs_path, self):
                     return True
-
-        # Create normalized path for consistent handling
-        rel_path = Path(relative_path)
-
-        # always ignore paths inside .git
-        if len(rel_path.parts) > 0 and ".git" in rel_path.parts:
-            return True
 
         is_dir = None if is_file is None else not is_file
         return match_path(str(relative_path), self._ignore_spec, root_path=self.project_root, is_dir=is_dir)
