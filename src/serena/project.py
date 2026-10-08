@@ -284,9 +284,9 @@ class Project(ToStringMixin):
 
         return self._is_ignored_relative_path(str(relative_path), ignore_non_source_files=ignore_non_source_files, is_file=is_file)
 
-    def get_is_ignored_path_fn(self, base_path: str, skip_ignored_paths: bool) -> Callable[[str], bool]:
+    def get_is_ignored_path_fn(self, base_path: str, skip_ignored_paths: bool, is_file: bool) -> Callable[[str], bool]:
         """
-        Returns a function for checking whether a path should be ignored during a traversal of the given base path.
+        Returns a function for checking whether a file should be ignored during a traversal of the given base path.
 
         :param base_path: the relative base path representing the starting point of the traversal.
             If the path is itself ignored, then the returned function will not consider ignored paths.
@@ -295,7 +295,7 @@ class Project(ToStringMixin):
         """
         if not skip_ignored_paths or self.is_ignored_path(base_path):
             return lambda _: False
-        return self.is_ignored_path
+        return lambda p: self.is_ignored_path(p, is_file=is_file)
 
     def is_path_in_project(self, path: str | Path) -> bool:
         """

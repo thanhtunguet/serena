@@ -242,13 +242,12 @@ class FsApi(FacadeApi):
             raise FileNotFoundError(f"Directory not found: {relative_path} (check if the path is correct relative to the project root)")
         project.validate_relative_path(relative_path)
 
-        is_ignored_path_fn = project.get_is_ignored_path_fn(relative_path, skip_ignored_files)
         dirs, files = scan_directory(
             os.path.join(project.project_root, relative_path),
             relative_to=project.project_root,
             recursive=recursive,
-            is_ignored_dir=is_ignored_path_fn,
-            is_ignored_file=is_ignored_path_fn,
+            is_ignored_dir=project.get_is_ignored_path_fn(relative_path, skip_ignored_files, is_file=False),
+            is_ignored_file=project.get_is_ignored_path_fn(relative_path, skip_ignored_files, is_file=True),
         )
         return DirectoryListing(dirs, files, DirectoryListingRenderer(self._agent, max_answer_chars))
 
@@ -265,18 +264,18 @@ class FsApi(FacadeApi):
         project = self._get_project()
         project.validate_relative_path(relative_path)
 
-        is_ignored_path_fn = project.get_is_ignored_path_fn(relative_path, skip_ignored_paths=skip_ignored_files)
+        is_ignored_file_base_fn = project.get_is_ignored_path_fn(relative_path, skip_ignored_paths=skip_ignored_files, is_file=True)
 
         # find the files by ignoring everything that doesn't match
         def is_ignored_file(abs_path: str) -> bool:
-            if is_ignored_path_fn(abs_path):
+            if is_ignored_file_base_fn(abs_path):
                 return True
             return not fnmatch(os.path.basename(abs_path), file_mask)
 
         _dirs, files = scan_directory(
             path=os.path.join(project.project_root, relative_path),
             recursive=True,
-            is_ignored_dir=is_ignored_path_fn,
+            is_ignored_dir=project.get_is_ignored_path_fn(relative_path, skip_ignored_paths=skip_ignored_files, is_file=False),
             is_ignored_file=is_ignored_file,
             relative_to=project.project_root,
         )
