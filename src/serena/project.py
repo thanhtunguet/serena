@@ -510,15 +510,6 @@ class Project(ToStringMixin):
             paths_exclude_glob=paths_exclude_glob,
             multiline=multiline,
         )
-        return search_files(
-            file_collection,
-            pattern,
-            context_lines_before=context_lines_before,
-            context_lines_after=context_lines_after,
-            paths_include_glob=paths_include_glob,
-            paths_exclude_glob=paths_exclude_glob,
-            multiline=multiline,
-        )
 
     def retrieve_content_around_line(
         self, relative_file_path: str, line: int, context_lines_before: int = 0, context_lines_after: int = 0
