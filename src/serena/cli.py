@@ -920,8 +920,9 @@ class ProjectCommands(AutoRegisteringGroup):
             last_save_time = time.monotonic()
             for i, f in enumerate(tqdm(files, desc="Indexing")):
                 try:
-                    ls = ls_mgr.get_language_server(f)
-                    ls.request_document_symbols(f)
+                    rel_path = f.rel_path
+                    ls = ls_mgr.get_language_server(rel_path)
+                    ls.request_document_symbols(rel_path)
                     language_file_counts[ls.ls_id] += 1
                 except Exception as e:
                     log.error(f"Failed to index {f}, continuing.")
