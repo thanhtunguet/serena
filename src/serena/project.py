@@ -350,7 +350,7 @@ class Project(ToStringMixin):
             if self.is_ignored_path(relative_path):
                 raise ValueError(f"Path {relative_path} is ignored")
 
-    class ProjectFile:
+    class ProjectFile(ToStringMixin):
         def __init__(self, dir_entry: os.DirEntry, rel_path: str):
             self.dir_entry = dir_entry
             """
@@ -366,6 +366,9 @@ class Project(ToStringMixin):
             rel_path = os.path.relpath(abs_path, start=project.project_root)
             dir_entry = dir_entry_from_path(abs_path)
             return Project.ProjectFile(dir_entry, rel_path)
+
+        def _tostring_includes(self) -> list[str]:
+            return ["rel_path"]
 
     def gather_source_files(self, relative_path: str = "") -> list[ProjectFile]:
         """

@@ -40,6 +40,7 @@ from serena.constants import (
     SERENAS_OWN_MODE_YAMLS_DIR,
 )
 from serena.language_backend import BuiltinLanguageBackend, LanguageBackendRegistry
+from serena.project import Project
 from serena.prompt_factory import SerenaPromptFactory
 from serena.tools import ActivateProjectTool
 from serena.util.cli_util import AutoRegisteringGroup
@@ -918,16 +919,17 @@ class ProjectCommands(AutoRegisteringGroup):
             files_failed = []
             language_file_counts: dict[LanguageServerIdLike, int] = collections.defaultdict(lambda: 0)
             last_save_time = time.monotonic()
-            for i, f in enumerate(tqdm(files, desc="Indexing")):
+            for i, project_file in enumerate(tqdm(files, desc="Indexing")):
+                project_file: Project.ProjectFile
+                rel_path = project_file.rel_path
                 try:
-                    rel_path = f.rel_path
                     ls = ls_mgr.get_language_server(rel_path)
                     ls.request_document_symbols(rel_path)
                     language_file_counts[ls.ls_id] += 1
                 except Exception as e:
-                    log.error(f"Failed to index {f}, continuing.")
+                    log.error(f"Failed to index {rel_path}, continuing.")
                     collected_exceptions.append(e)
-                    files_failed.append(f)
+                    files_failed.append(rel_path)
                 now = time.monotonic()
                 if now - last_save_time >= 30:
                     ls_mgr.save_all_caches()
