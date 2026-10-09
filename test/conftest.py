@@ -218,7 +218,7 @@ def project(request: LanguageParamRequest, repo_root_override: str | None = None
 
     Example:
     ```
-    @pytest.mark.parametrize("project", [Language.PYTHON], indirect=True)
+    @pytest.mark.parametrize("project", [LanguageServerId.PYTHON], indirect=True)
     def test_python_project(project: Project) -> None:
         # Use the Python project to test something
         pass
