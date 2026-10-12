@@ -31,10 +31,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def _log_scan_error(error: OSError) -> None:
-    log.debug(f"Skipping directory {error.filename} which cannot be scanned", exc_info=error)
-
-
 class Project(ToStringMixin):
     def __init__(
         self,
@@ -337,10 +333,13 @@ class Project(ToStringMixin):
                 return True
             return is_matching_file_name is not None and not is_matching_file_name(entry.name)
 
+        def log_scan_error(error: OSError) -> None:
+            log.debug(f"Skipping directory {error.filename} which cannot be scanned", exc_info=error)
+
         directories: list[str] = []
         files: list[str] = []
         for _root, dir_entries, file_entries in walk_dir_entries(
-            abs_path, followlinks=follow_links, is_ignored_dir=is_ignored_dir, onerror=_log_scan_error
+            abs_path, followlinks=follow_links, is_ignored_dir=is_ignored_dir, onerror=log_scan_error
         ):
             directories.extend(os.path.relpath(entry.path, start=self.project_root) for entry in dir_entries)
             for entry in file_entries:
