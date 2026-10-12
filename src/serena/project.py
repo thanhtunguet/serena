@@ -44,6 +44,12 @@ class Project(ToStringMixin):
         serena_config: SerenaConfig,
         is_newly_created: bool = False,
     ):
+        """
+        :param project_root: path to the project's root folder; it is assumed to be fully resolved
+        :param project_config: the project's configuration
+        :param serena_config: the global Serena configuration
+        :param is_newly_created: whether the project was newly created
+        """
         assert serena_config is not None
         self.project_root = project_root
         self.project_config = project_config
@@ -66,7 +72,6 @@ class Project(ToStringMixin):
         self._language_server_manager_init_error: Exception | None = None
         self.is_newly_created = is_newly_created
         self._agent: Optional["SerenaAgent"] = None
-        self._resolved_project_root_cache: str | None = None
 
         # create .gitignore file in the project's Serena data folder if not yet present
         serena_data_gitignore_path = os.path.join(self._serena_data_folder, ".gitignore")
@@ -362,7 +367,7 @@ class Project(ToStringMixin):
         resolved_path = os.path.realpath(path)
 
         try:
-            escapes = os.path.commonpath([self._resolved_project_root, resolved_path]) != self._resolved_project_root
+            escapes = os.path.commonpath([self.project_root, resolved_path]) != self.project_root
         except ValueError:
             # occurs, in particular, if paths are on different drives on Windows
             escapes = True
@@ -370,16 +375,6 @@ class Project(ToStringMixin):
         if escapes:
             log.debug(f"Path {path} resolves outside the project root {self.project_root} and the project is not trusted")
         return escapes
-
-    @property
-    def _resolved_project_root(self) -> str:
-        """
-        :return: the project root with all symlinks resolved; cached, since the root does not change
-            while the project is loaded
-        """
-        if self._resolved_project_root_cache is None:
-            self._resolved_project_root_cache = os.path.realpath(self.project_root)
-        return self._resolved_project_root_cache
 
     def is_path_in_project(self, path: str | Path) -> bool:
         """
