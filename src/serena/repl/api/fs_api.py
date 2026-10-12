@@ -261,7 +261,7 @@ class FsApi(FacadeApi):
             relative_path,
             recursive=True,
             skip_ignored_paths=skip_ignored_files,
-            is_matching_file_name=lambda name: fnmatch(name, file_mask),
+            is_matching_file=lambda e: fnmatch(e.name, file_mask),
         )
         return scan_result.files
 

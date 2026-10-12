@@ -187,7 +187,7 @@ def dir_entry_from_path(path: str) -> os.DirEntry:
 
 
 def walk_dir_entries(
-    top, topdown=True, onerror=None, followlinks=False, is_ignored_dir: Callable[[os.DirEntry], bool] = lambda x: False
+    top, topdown=True, onerror=None, followlinks=False, recursive=True, is_ignored_dir: Callable[[os.DirEntry], bool] = lambda x: False
 ) -> Iterator[tuple[str, list[os.DirEntry], list[os.DirEntry]]]:
     """
     Variant of os.walk which yields os.DirEntry objects instead of strings.
@@ -200,6 +200,7 @@ def walk_dir_entries(
     :param topdown: if True, yield the directory before its subdirectories; if False, yield the subdirectories before the directory
     :param onerror: a function to call with an OSError instance if an error occurs while accessing a directory
     :param followlinks: if True, follow symbolic links to directories; if False, do not follow them
+    :param recursive: whether to recursively walk into subdirectories; if False, only the top directory is yielded
     :param is_ignored_dir: a function to determine whether a directory should be ignored; it takes an os.DirEntry and returns True if
         the directory should be ignored
     :return: an iterator yielding tuples of (directory path, list of subdirectory entries, list of file entries)
@@ -229,8 +230,9 @@ def walk_dir_entries(
     if topdown:
         yield top, dirs, files
 
-    for entry in dirs:
-        yield from walk_dir_entries(entry.path, topdown, onerror, followlinks, is_ignored_dir=is_ignored_dir)
+    if recursive:
+        for entry in dirs:
+            yield from walk_dir_entries(entry.path, topdown, onerror, followlinks, is_ignored_dir=is_ignored_dir)
 
     if not topdown:
         yield top, dirs, files

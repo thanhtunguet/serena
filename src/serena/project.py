@@ -296,7 +296,7 @@ class Project(ToStringMixin):
         *,
         recursive: bool = False,
         skip_ignored_paths: bool = False,
-        is_matching_file_name: Callable[[str], bool] | None = None,
+        is_matching_file: Callable[[os.DirEntry], bool] | None = None,
     ) -> ScanResult:
         """
         Scans the directory at the given path, returning the directories and files it contains
@@ -309,8 +309,8 @@ class Project(ToStringMixin):
         :param recursive: whether to scan subdirectories recursively
         :param skip_ignored_paths: whether to skip paths that are ignored according to the project's
             ignore settings; has no effect if the given path is itself ignored
-        :param is_matching_file_name: an optional additional filter; if given, only files whose name
-            (the last path component) it accepts are contained in the result
+        :param is_matching_file: an optional additional filter; if given, only files for which this
+            function returns True are included in the result
         :return: the directories and files found by the scan
         """
         abs_path = os.path.join(self.project_root, relative_path)
@@ -318,6 +318,7 @@ class Project(ToStringMixin):
             raise ValueError(f"Path {relative_path} points outside the project root ({self.project_root})")
 
         follow_links = self.is_trusted()
+
         # ignore rules can only be applied if the start path is not itself ignored
         # (if it is, we return everything below it, since the caller explicitly requested it)
         apply_ignore_rules = skip_ignored_paths and not self.is_ignored_path(abs_path)
@@ -331,7 +332,7 @@ class Project(ToStringMixin):
                 return True
             if apply_ignore_rules and self.is_ignored_path(entry.path, is_file=True):
                 return True
-            return is_matching_file_name is not None and not is_matching_file_name(entry.name)
+            return is_matching_file is not None and not is_matching_file(entry)
 
         def log_scan_error(error: OSError) -> None:
             log.debug(f"Skipping directory {error.filename} which cannot be scanned", exc_info=error)
@@ -339,7 +340,7 @@ class Project(ToStringMixin):
         directories: list[str] = []
         files: list[str] = []
         for _root, dir_entries, file_entries in walk_dir_entries(
-            abs_path, followlinks=follow_links, is_ignored_dir=is_ignored_dir, onerror=log_scan_error
+            abs_path, followlinks=follow_links, recursive=recursive, is_ignored_dir=is_ignored_dir, onerror=log_scan_error
         ):
             directories.extend(os.path.relpath(entry.path, start=self.project_root) for entry in dir_entries)
             for entry in file_entries:
