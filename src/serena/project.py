@@ -348,13 +348,14 @@ class Project(ToStringMixin):
 
         return ScanResult(directories, files)
 
-    def _is_symlink_escaping_project_root(self, path: str | Path) -> bool:
+    def _is_symlink_escaping_project_trust_boundary(self, path: str | Path) -> bool:
         """
-        Checks whether the given path refers to a location outside the project root through a symlink
-        in a way that is not sanctioned by the project's trust.
+        Checks whether the given path escapes the project's trust boundary through a symlink.
+        An untrusted project cannot contain symlinks that point outside of the project root,
+        whereas it is allowed for trusted projects.
 
         :param path: the path to check, absolute or relative to the project root
-        :return: True if the path resolves outside the project root and the project is not trusted
+        :return: whether the path escapes the trust boundary
         """
         if self.is_trusted():
             return False
@@ -377,12 +378,11 @@ class Project(ToStringMixin):
 
     def is_path_in_project(self, path: str | Path) -> bool:
         """
-        Checks if the given (absolute or relative) path is inside the project directory.
+        Checks if the given (absolute or relative) path is within the project's trust boundary.
 
-        Containment is decided on the lexically normalized path, which catches ".." segments, as well as on
-        the path with symlinks resolved: a path that is inside the project only lexically but resolves
-        outside of it through a symlink is accepted for trusted projects only, so that a symlink supplied
-        by the repository cannot redirect file access outside the project root.
+        Containment is decided based on the lexically normalized path, which catches ".." segments, and,
+        for untrusted projects, the path with symlinks resolved (symlinks that point outside the project root
+        are only allowed in trusted projects).
         """
         if not os.path.isabs(path):
             path = os.path.join(self.project_root, path)
@@ -397,7 +397,7 @@ class Project(ToStringMixin):
             # occurs, in particular, if paths are on different drives on Windows
             return False
 
-        return not self._is_symlink_escaping_project_root(path)
+        return not self._is_symlink_escaping_project_trust_boundary(path)
 
     def relative_path_exists(self, relative_path: str, require_file: bool = False) -> bool:
         """
