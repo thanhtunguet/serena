@@ -1,4 +1,4 @@
-from solidlsp.ls_config import FilenameMatcher
+from solidlsp.ls_config import FilenameMatcher, LanguageServerId
 
 
 class TestFilenameMatcherCaseSensitivity:
@@ -44,3 +44,32 @@ class TestFilenameMatcherCaseSensitivity:
         assert matcher.string_contains_relevant_filename("main.py")
         # ".py" embedded in ".python" is not a complete extension occurrence.
         assert not matcher.string_contains_relevant_filename("file.python")
+
+
+class TestVbNetLanguageServerConfig:
+    def test_vb_files_route_to_vbnet(self) -> None:
+        language_server = LanguageServerId.VBNET
+
+        assert language_server.get_source_fn_matcher().is_relevant_filename("Program.vb")
+        assert not language_server.get_source_fn_matcher().is_relevant_filename("Program.vbproj")
+
+    def test_vbnet_server_is_registered(self) -> None:
+        from solidlsp.language_servers.vbnet_language_server import VbNetLanguageServer
+
+        assert LanguageServerId.VBNET.get_ls_class() is VbNetLanguageServer
+
+
+class TestVbaLanguageServerConfig:
+    def test_vba_files_route_to_vba(self) -> None:
+        matcher = LanguageServerId.VBA.get_source_fn_matcher()
+
+        assert matcher.is_relevant_filename("Module.bas")
+        assert matcher.is_relevant_filename("Class.cls")
+        assert matcher.is_relevant_filename("Form.frm")
+        assert matcher.is_relevant_filename("MODULE.BAS")
+        assert not matcher.is_relevant_filename("Module.vb")
+
+    def test_vba_server_is_registered(self) -> None:
+        from solidlsp.language_servers.vba_language_server import VbaLanguageServer
+
+        assert LanguageServerId.VBA.get_ls_class() is VbaLanguageServer

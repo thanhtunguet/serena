@@ -159,6 +159,8 @@ class LanguageServerId(Enum):
     OCAML = "ocaml"
     AL = "al"
     FSHARP = "fsharp"
+    VBNET = "vbnet"
+    VBA = "vba"
     REGO = "rego"
     SCALA = "scala"
     JULIA = "julia"
@@ -460,6 +462,10 @@ class LanguageServerId(Enum):
                 return FilenameMatcher(*path_patterns)
             case self.CSHARP | self.CSHARP_OMNISHARP:
                 return FilenameMatcher(".cs")
+            case self.VBNET:
+                return FilenameMatcher(".vb")
+            case self.VBA:
+                return FilenameMatcher(".bas", ".cls", ".frm", case_sensitive=False)
             case self.RUST:
                 return FilenameMatcher(".rs")
             case self.GO:
@@ -738,6 +744,14 @@ class LanguageServerId(Enum):
                 from solidlsp.language_servers.csharp_language_server import CSharpLanguageServer
 
                 return CSharpLanguageServer
+            case self.VBNET:
+                from solidlsp.language_servers.vbnet_language_server import VbNetLanguageServer
+
+                return VbNetLanguageServer
+            case self.VBA:
+                from solidlsp.language_servers.vba_language_server import VbaLanguageServer
+
+                return VbaLanguageServer
             case self.CSHARP_OMNISHARP:
                 from solidlsp.language_servers.omnisharp import OmniSharp
 

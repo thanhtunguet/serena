@@ -288,6 +288,8 @@ _LANGUAGE_PYTEST_MARKERS: dict[LanguageServerId, list[MarkDecorator | Mark]] = {
     LanguageServerId.CPP_CCLS: [pytest.mark.cpp],
     LanguageServerId.CUE: [pytest.mark.cue],
     LanguageServerId.CSHARP: [pytest.mark.csharp],
+    LanguageServerId.VBNET: [pytest.mark.vbnet],
+    LanguageServerId.VBA: [pytest.mark.vba],
     LanguageServerId.DENO: [pytest.mark.deno],
     LanguageServerId.FSHARP: [pytest.mark.fsharp],
     LanguageServerId.GO: [pytest.mark.go],
@@ -407,6 +409,18 @@ def _is_ocaml_lsp_available() -> bool:
         return False
 
 
+def _is_vbnet_lsp_available() -> bool:
+    if _sh.which("vbnet-ls") is not None:
+        return True
+    executable_names = ("vbnet-ls.exe", "vbnet-ls") if is_windows else ("vbnet-ls",)
+    return any((Path.home() / ".dotnet" / "tools" / name).is_file() for name in executable_names)
+
+
+def _is_vba_lsp_available() -> bool:
+    server_path = Path(os.environ.get("VBA_LS_PATH", "~/.local/src/VBA-LanguageServer/dist/server/out/server.js")).expanduser()
+    return _sh.which("node") is not None and server_path.is_file()
+
+
 def _determine_disabled_language_servers() -> list[LanguageServerId]:
     """
     Determine which language server tests are disabled in the current environment.
@@ -457,6 +471,10 @@ def _determine_disabled_language_servers() -> list[LanguageServerId]:
     # 3b. Toolchain / language-server availability (the LS/compiler must be on PATH or installed).
     if _sh.which("clangd") is None:
         result.append(LanguageServerId.CPP)
+    if not _is_vbnet_lsp_available():
+        result.append(LanguageServerId.VBNET)
+    if not _is_vba_lsp_available():
+        result.append(LanguageServerId.VBA)
     if _sh.which("ccls") is None or is_windows:  # no recent ccls binary is available for Windows
         result.append(LanguageServerId.CPP_CCLS)
     if _sh.which("php") is None:
