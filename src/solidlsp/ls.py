@@ -598,6 +598,10 @@ class SolidLanguageServer(ABC):
         """
         self._abs_workspace_folders_all = self._abs_workspace_folders_indexed + self._abs_workspace_folders_additional
 
+    def _get_file_encoding(self, relative_file_path: str) -> str:
+        """Resolve the effective text encoding for a project-relative file path."""
+        return self.config.resolve_file_encoding(relative_file_path)
+
     @property
     def custom_settings(self) -> SolidLSPSettings.CustomLSSettings:
         """
@@ -1163,7 +1167,7 @@ class SolidLanguageServer(ABC):
             fb = LSPFileBuffer(
                 abs_path=abs_path,
                 uri=uri,
-                encoding=self._encoding,
+                encoding=self._get_file_encoding(rel_path),
                 version=0,
                 language_id=language_id,
                 ref_count=1,
@@ -1340,7 +1344,7 @@ class SolidLanguageServer(ABC):
             fb = LSPFileBuffer(
                 abs_path=absolute_file_path,
                 uri=uri,
-                encoding=self._encoding,
+                encoding=self._get_file_encoding(relative_file_path),
                 version=version,
                 language_id=language_id,
                 ref_count=1,
@@ -2618,13 +2622,13 @@ class SolidLanguageServer(ABC):
         :param include_body: Whether to include the body of the symbol in the result.
         :return: The container symbol (if found) or None.
         """
+        absolute_file_path = os.path.join(self.repository_root_path, relative_file_path)
+        if self._path_contains_dots(relative_file_path):
+            absolute_file_path = str(pathlib.Path(absolute_file_path).resolve())
+
         # checking if the line is empty, unfortunately ugly and duplicating code, but I don't want to refactor
-        with self.open_file(relative_file_path):
-            absolute_file_path = os.path.join(self.repository_root_path, relative_file_path)
-            if self._path_contains_dots(relative_file_path):
-                absolute_file_path = str(pathlib.Path(absolute_file_path).resolve())
-            content = FileUtils.read_file(absolute_file_path, self._encoding)
-            if content.split("\n")[line].strip() == "":
+        with self.open_file(relative_file_path, open_in_ls=False) as file_buffer:
+            if file_buffer.contents.split("\n")[line].strip() == "":
                 log.error(f"Passing empty lines to request_container_symbol is currently not supported, {relative_file_path=}, {line=}")
                 return None
 

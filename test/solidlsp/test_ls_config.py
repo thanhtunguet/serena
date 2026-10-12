@@ -1,4 +1,6 @@
-from solidlsp.ls_config import FilenameMatcher, LanguageServerId
+import pytest
+
+from solidlsp.ls_config import FilenameMatcher, LanguageServerId, LegacyPathEncodingResolver
 
 
 class TestFilenameMatcherCaseSensitivity:
@@ -73,3 +75,36 @@ class TestVbaLanguageServerConfig:
         from solidlsp.language_servers.vba_language_server import VbaLanguageServer
 
         assert LanguageServerId.VBA.get_ls_class() is VbaLanguageServer
+
+
+class TestLegacyPathEncodingResolver:
+    def test_resolve_uses_first_matching_glob_rule(self) -> None:
+        resolver = LegacyPathEncodingResolver(
+            default_encoding="utf-8",
+            legacy_encodings=[
+                {"*.vb": "cp932"},
+                {"*.vb": "latin-1"},
+            ],
+        )
+
+        assert resolver.resolve("legacy/module.vb") == "cp932"
+        assert resolver.resolve("legacy/module.py") == "utf-8"
+
+    def test_resolve_supports_regex_rules_with_prefix(self) -> None:
+        resolver = LegacyPathEncodingResolver(
+            default_encoding="utf-8",
+            legacy_encodings=[
+                {"re:^legacy/jp/.*\.txt$": "cp932"},
+            ],
+        )
+
+        assert resolver.resolve("legacy/jp/readme.txt") == "cp932"
+        assert resolver.resolve("legacy/us/readme.txt") == "utf-8"
+
+    def test_invalid_encoding_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unknown text encoding"):
+            LegacyPathEncodingResolver(default_encoding="utf-8", legacy_encodings=[{"*.vb": "no_such_encoding"}])
+
+    def test_invalid_regex_raises(self) -> None:
+        with pytest.raises(ValueError, match="Invalid regex"):
+            LegacyPathEncodingResolver(default_encoding="utf-8", legacy_encodings=[{"re:*bad": "cp932"}])

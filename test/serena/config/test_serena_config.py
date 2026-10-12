@@ -165,6 +165,24 @@ class TestProjectConfig:
         _, is_complete = ProjectConfig._load_yaml_dict(PROJECT_TEMPLATE_FILE)
         assert is_complete, "Project template YAML is incomplete; all fields must be present (with descriptions)."
 
+    def test_legacy_encodings_parsed_from_dict(self):
+        data, _ = ProjectConfig._load_yaml_dict(PROJECT_TEMPLATE_FILE)
+        data["project_name"] = "test"
+        data["language_servers"] = ["python"]
+        data["legacy_encodings"] = [{"*.vb": "cp932"}, {"re:^legacy/.*\.txt$": "cp932"}]
+
+        config = ProjectConfig._from_dict(data, local_override_keys=[])
+        assert config.legacy_encodings == [{"*.vb": "cp932"}, {"re:^legacy/.*\.txt$": "cp932"}]
+
+    def test_legacy_encodings_invalid_encoding_raises(self):
+        data, _ = ProjectConfig._load_yaml_dict(PROJECT_TEMPLATE_FILE)
+        data["project_name"] = "test"
+        data["language_servers"] = ["python"]
+        data["legacy_encodings"] = [{"*.vb": "does_not_exist"}]
+
+        with pytest.raises(ValueError, match="Unknown text encoding"):
+            ProjectConfig._from_dict(data, local_override_keys=[])
+
 
 class TestProjectConfigLanguageBackend:
     """Tests for the per-project language_backend field."""

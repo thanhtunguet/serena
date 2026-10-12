@@ -1174,8 +1174,9 @@ class JetBrainsSymbol(Symbol):
 
     def get_file_content(self) -> str:
         if self._cached_file_content is None:
-            path = os.path.join(self._project.project_root, self.get_relative_path())
-            with open(path, encoding=self._project.project_config.encoding) as f:
+            relative_path = self.get_relative_path()
+            path = os.path.join(self._project.project_root, relative_path)
+            with open(path, encoding=self._project.get_file_encoding(relative_path)) as f:
                 self._cached_file_content = f.read()
         return self._cached_file_content
 

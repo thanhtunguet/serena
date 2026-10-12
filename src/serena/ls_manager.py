@@ -33,6 +33,7 @@ class LanguageServerFactory:
         project_config: ProjectConfig,
         project_data_path: str,
         encoding: str,
+        legacy_encodings: list[dict[str, str]],
         ignored_patterns: list[str],
         ls_timeout: float | None = None,
         ls_specific_settings: dict | None = None,
@@ -42,6 +43,7 @@ class LanguageServerFactory:
         self.project_config = project_config
         self.project_data_path = project_data_path
         self.encoding = encoding
+        self.legacy_encodings = legacy_encodings
         self.ignored_patterns = ignored_patterns
         self.ls_timeout = ls_timeout
         self.ls_specific_settings = ls_specific_settings
@@ -55,6 +57,7 @@ class LanguageServerFactory:
             ignored_paths=self.ignored_patterns,
             trace_lsp_communication=self.trace_lsp_communication,
             encoding=self.encoding,
+            legacy_encodings=self.legacy_encodings,
         )
 
         log.info(f"Creating language server instance for {self.project_root}, language={ls_id}.")

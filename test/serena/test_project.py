@@ -75,6 +75,43 @@ class TestProject:
         non_ignored_files = project.gather_project_files(skip_ignored_files=True)
         assert len(non_ignored_files) == 5
 
+    def test_legacy_encodings_resolve_per_file_path(self, tmp_path: Path) -> None:
+        project = Project(
+            project_root=str(tmp_path),
+            project_config=ProjectConfig(
+                project_name="test_project",
+                language_servers=[LanguageServerId.PYTHON],
+                encoding="utf-8",
+                legacy_encodings=[
+                    {"*.vb": "cp932"},
+                    {"re:^legacy/jp/.*\.txt$": "cp932"},
+                ],
+            ),
+            serena_config=SerenaConfig().with_headless_mode_overrides(),
+        )
+
+        assert project.get_file_encoding("src/main.py") == "utf-8"
+        assert project.get_file_encoding("legacy/code.vb") == "cp932"
+        assert project.get_file_encoding("legacy/jp/readme.txt") == "cp932"
+
+    def test_read_file_uses_legacy_encodings(self, tmp_path: Path) -> None:
+        legacy_file = tmp_path / "legacy" / "module.vb"
+        legacy_file.parent.mkdir(parents=True)
+        legacy_file.write_bytes("こんにちは世界".encode("cp932"))
+
+        project = Project(
+            project_root=str(tmp_path),
+            project_config=ProjectConfig(
+                project_name="test_project",
+                language_servers=[LanguageServerId.PYTHON],
+                encoding="utf-8",
+                legacy_encodings=[{"*.vb": "cp932"}],
+            ),
+            serena_config=SerenaConfig().with_headless_mode_overrides(),
+        )
+
+        assert project.read_file("legacy/module.vb") == "こんにちは世界"
+
 
 class TestProjectRespectsGlobalIgnoredPaths:
     """Tests that projects consider globally defined ignored paths."""

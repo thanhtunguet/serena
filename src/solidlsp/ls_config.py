@@ -10,10 +10,12 @@ import logging
 import os
 import re
 import threading
+import codecs
+import fnmatch
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from enum import Enum
-from functools import cache
+from functools import cache, cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, Self
 
@@ -1162,6 +1164,95 @@ class LanguageServerRegistry:
 
 
 @dataclass(frozen=True)
+class _LegacyPathEncodingRule:
+    """Rule mapping a path matcher to a specific encoding."""
+
+    matcher: str
+    encoding: str
+    regex: re.Pattern[str] | None = None
+
+    def matches(self, relative_path: str) -> bool:
+        if self.regex is not None:
+            return self.regex.search(relative_path) is not None
+        return fnmatch.fnmatchcase(relative_path, self.matcher)
+
+
+class LegacyPathEncodingResolver:
+    """Resolve file encodings based on ordered path rules with fallback to a default encoding.
+
+    Rule syntax:
+      * glob rule: ``"*.vb"``
+      * regex rule: ``"re:^legacy/.*\\.vb$"``
+    """
+
+    REGEX_PREFIX = "re:"
+
+    def __init__(self, default_encoding: str, legacy_encodings: list[dict[str, str]] | None = None) -> None:
+        self._validate_encoding(default_encoding, "default encoding")
+        self._default_encoding = default_encoding
+        self._rules = self._parse_rules(legacy_encodings or [])
+
+    @classmethod
+    def validate_legacy_encodings(cls, legacy_encodings: list[dict[str, str]] | None) -> None:
+        cls._parse_rules(legacy_encodings or [])
+
+    @classmethod
+    def _parse_rules(cls, legacy_encodings: list[dict[str, str]]) -> list[_LegacyPathEncodingRule]:
+        if not isinstance(legacy_encodings, list):
+            raise ValueError("legacy_encodings must be a list of mappings from path matcher to encoding")
+
+        rules: list[_LegacyPathEncodingRule] = []
+        for item_index, item in enumerate(legacy_encodings):
+            if not isinstance(item, dict) or len(item) == 0:
+                raise ValueError(
+                    f"legacy_encodings[{item_index}] must be a non-empty mapping from path matcher to encoding"
+                )
+            for matcher_raw, encoding_raw in item.items():
+                if not isinstance(matcher_raw, str) or matcher_raw.strip() == "":
+                    raise ValueError(
+                        f"legacy_encodings[{item_index}] contains an invalid matcher {matcher_raw!r}; expected non-empty string"
+                    )
+                if not isinstance(encoding_raw, str) or encoding_raw.strip() == "":
+                    raise ValueError(
+                        f"legacy_encodings[{item_index}] matcher {matcher_raw!r} has invalid encoding {encoding_raw!r}; "
+                        "expected non-empty string"
+                    )
+
+                matcher = matcher_raw.strip()
+                encoding = encoding_raw.strip()
+                cls._validate_encoding(encoding, f"legacy_encodings matcher {matcher!r}")
+
+                if matcher.startswith(cls.REGEX_PREFIX):
+                    pattern = matcher[len(cls.REGEX_PREFIX) :]
+                    try:
+                        regex = re.compile(pattern)
+                    except re.error as e:
+                        raise ValueError(
+                            f"Invalid regex in legacy_encodings matcher {matcher!r}: {e}"
+                        ) from e
+                    rules.append(_LegacyPathEncodingRule(matcher=matcher, encoding=encoding, regex=regex))
+                else:
+                    matcher = matcher.replace("\\", "/")
+                    rules.append(_LegacyPathEncodingRule(matcher=matcher, encoding=encoding))
+
+        return rules
+
+    @staticmethod
+    def _validate_encoding(encoding: str, context: str) -> None:
+        try:
+            codecs.lookup(encoding)
+        except LookupError as e:
+            raise ValueError(f"Unknown text encoding {encoding!r} for {context}") from e
+
+    def resolve(self, relative_path: str) -> str:
+        normalized_path = relative_path.replace("\\", "/")
+        for rule in self._rules:
+            if rule.matches(normalized_path):
+                return rule.encoding
+        return self._default_encoding
+
+
+@dataclass(frozen=True)
 class LanguageServerConfig:
     """
     Configuration parameters for a language server instance
@@ -1192,12 +1283,25 @@ class LanguageServerConfig:
     """
     encoding: str = "utf-8"
     """File encoding to use when reading source files"""
+    legacy_encodings: list[dict[str, str]] = field(default_factory=list)
+    """Ordered list of path matcher -> encoding mappings overriding ``encoding`` for matching files."""
+
+    def __post_init__(self) -> None:
+        LegacyPathEncodingResolver.validate_legacy_encodings(self.legacy_encodings)
 
     @classmethod
     def from_dict(cls, env: dict) -> Self:
         import inspect
 
         return cls(**{k: v for k, v in env.items() if k in inspect.signature(cls).parameters})
+
+    @cached_property
+    def _path_encoding_resolver(self) -> LegacyPathEncodingResolver:
+        return LegacyPathEncodingResolver(default_encoding=self.encoding, legacy_encodings=self.legacy_encodings)
+
+    def resolve_file_encoding(self, relative_file_path: str) -> str:
+        """Resolve the effective file encoding for a project-relative file path."""
+        return self._path_encoding_resolver.resolve(relative_file_path)
 
     @staticmethod
     def _absolute_workspace_folders(folders: list[str], project_root: str) -> list[str]:

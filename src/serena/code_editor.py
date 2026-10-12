@@ -27,7 +27,6 @@ class CodeEditor(Generic[TSymbol], ABC):
     def __init__(self, project: Project) -> None:
         self.project = project
         self.project_root = project.project_root
-        self.encoding = project.project_config.encoding
         self.newline = project.line_ending.newline_str
 
     class EditedFile(ABC):
@@ -94,7 +93,12 @@ class CodeEditor(Generic[TSymbol], ABC):
     def _save_edited_file(self, edited_file: "CodeEditor.EditedFile") -> None:
         abs_path = os.path.join(self.project_root, edited_file.relative_path)
         new_contents = edited_file.get_contents()
-        write_file_atomic(abs_path, new_contents, encoding=self.encoding, newline=self.newline)
+        write_file_atomic(
+            abs_path,
+            new_contents,
+            encoding=self.project.get_file_encoding(edited_file.relative_path),
+            newline=self.newline,
+        )
 
     @abstractmethod
     def _find_unique_symbol(self, name_path: str, relative_file_path: str) -> TSymbol:

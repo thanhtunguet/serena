@@ -38,7 +38,7 @@ from serena.constants import (
 from serena.util.inspection import compute_language_server_support_composition
 from serena.util.text_utils import GlobMatcher
 from serena.util.yaml import YamlCommentNormalisation, load_yaml, normalise_yaml_comments, save_yaml, transfer_yaml_comments
-from solidlsp.ls_config import LanguageServerIdLike, LanguageServerRegistry
+from solidlsp.ls_config import LanguageServerIdLike, LanguageServerRegistry, LegacyPathEncodingResolver
 
 from ..analytics import RegisteredTokenCountEstimator
 from ..language_backend import BuiltinLanguageBackend, LanguageBackend, LanguageBackendRegistry
@@ -336,6 +336,7 @@ class ProjectConfig(SharedConfig, ModeSelectionDefinitionWithAddedModes):
     ignore_all_files_in_gitignore: bool = True
     initial_prompt: str = ""
     encoding: str = DEFAULT_SOURCE_FILE_ENCODING
+    legacy_encodings: list[dict[str, str]] = field(default_factory=list)
     activation_command: str | None = None
     activation_command_timeout: float = 180.0
 
@@ -636,6 +637,8 @@ class ProjectConfig(SharedConfig, ModeSelectionDefinitionWithAddedModes):
         excluded_apis = data.get("excluded_apis") or []
         included_apis = data.get("included_apis") or []
         additional_workspace_folders = data.get("ls_additional_workspace_folders") or []
+        legacy_encodings = data.get("legacy_encodings") or []
+        LegacyPathEncodingResolver.validate_legacy_encodings(legacy_encodings)
 
         if "base_modes" in data and data["base_modes"] is not None:
             log.warning("The base_modes setting in project.yml is deprecated and will be ignored.")
@@ -657,6 +660,7 @@ class ProjectConfig(SharedConfig, ModeSelectionDefinitionWithAddedModes):
             ignore_all_files_in_gitignore=data["ignore_all_files_in_gitignore"],
             initial_prompt=data["initial_prompt"],
             encoding=data["encoding"],
+            legacy_encodings=legacy_encodings,
             line_ending=line_ending,
             language_backend=language_backend,
             agent_interface=agent_interface,

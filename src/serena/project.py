@@ -23,7 +23,7 @@ from serena.util.file_proxy import FileCollection, FileProxy
 from serena.util.file_system import GitignoreParser, dir_entry_from_path, match_path, walk_dir_entries
 from serena.util.text_utils import MatchedConsecutiveLines, search_files
 from solidlsp import SolidLanguageServer
-from solidlsp.ls_config import LanguageServerIdLike
+from solidlsp.ls_config import LanguageServerIdLike, LegacyPathEncodingResolver
 
 if TYPE_CHECKING:
     from serena.agent import SerenaAgent
@@ -57,6 +57,10 @@ class Project(ToStringMixin):
 
         # resolve line ending (project -> global)
         self.line_ending = project_config.line_ending or serena_config.line_ending
+        self._path_encoding_resolver = LegacyPathEncodingResolver(
+            default_encoding=self.project_config.encoding,
+            legacy_encodings=self.project_config.legacy_encodings,
+        )
 
         self.language_server_manager: LanguageServerManager | None = None
         self._language_server_manager_init_error: Exception | None = None
@@ -189,6 +193,15 @@ class Project(ToStringMixin):
         :return: the content of the file
         """
         return FileProxy.from_project_relative_path(self, relative_path).get_contents()
+
+    def get_file_encoding(self, relative_path: str) -> str:
+        """
+        Resolve the encoding for a project-relative file path based on project defaults and legacy rules.
+
+        :param relative_path: the path to the file relative to project root
+        :return: the effective encoding to use for the file
+        """
+        return self._path_encoding_resolver.resolve(relative_path)
 
     @property
     def _ignore_spec(self) -> pathspec.PathSpec:
@@ -578,6 +591,7 @@ class Project(ToStringMixin):
                 project_config=self.project_config,
                 project_data_path=self._serena_data_folder,
                 encoding=self.project_config.encoding,
+                legacy_encodings=self.project_config.legacy_encodings,
                 ignored_patterns=self._ignored_patterns,
                 ls_timeout=ls_timeout,
                 ls_specific_settings=ls_specific_settings,

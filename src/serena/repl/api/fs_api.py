@@ -219,7 +219,7 @@ class FsApi(FacadeApi):
 
         # write the file
         abs_path.parent.mkdir(parents=True, exist_ok=True)
-        abs_path.write_text(content, encoding=project.project_config.encoding, newline=project.line_ending.newline_str)
+        abs_path.write_text(content, encoding=project.get_file_encoding(relative_path), newline=project.line_ending.newline_str)
         answer = f"File created: {relative_path}."
         if will_overwrite_existing:
             answer += " Overwrote existing file."

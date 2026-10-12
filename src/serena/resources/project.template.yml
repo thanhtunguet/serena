@@ -45,6 +45,20 @@ language_servers: ["python"]
 # For a list of possible encodings, see https://docs.python.org/3.11/library/codecs.html#standard-encodings
 encoding: "utf-8"
 
+# ordered list of path-based encoding overrides for legacy files.
+# Each list item is a mapping from matcher -> encoding.
+# Matcher syntax:
+#   * glob (default), e.g. "*.vb" or "legacy/**/*.txt"
+#   * regex, prefixed with "re:", e.g. "re:^legacy/jp/.*\\.vb$"
+# Matching is performed against project-relative file paths with forward slashes.
+# The first matching rule wins; if no rule matches, `encoding` above is used.
+# Example:
+#   legacy_encodings:
+#     - "*.sh": "utf_8"
+#     - "*.vb": "cp932"
+#     - "re:^legacy/jp/.*\\.txt$": "cp932"
+legacy_encodings: []
+
 # optional shell command to run before the language backend (LSP or JetBrains) is initialised.
 # the command runs in the project root directory and is only executed if the project is trusted
 # (see trusted_project_path_patterns in the global configuration).

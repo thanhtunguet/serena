@@ -46,7 +46,7 @@ class LocalProjectFileProxy(FileProxy):
 
     def get_contents(self) -> str:
         abs_path = os.path.join(self._project.project_root, self._relative_path)
-        with open(abs_path, encoding=self._project.project_config.encoding) as f:
+        with open(abs_path, encoding=self._project.get_file_encoding(self._relative_path)) as f:
             return f.read()
 
     def get_relative_path(self) -> str:
