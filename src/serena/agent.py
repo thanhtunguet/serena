@@ -757,6 +757,7 @@ class SerenaAgent:
             "version": self.version,
             "backend": self._language_backend.get_key(),
             "context": self._context.name,
+            "agent_interface": self._agent_interface.value,
         }
         try:
             requests.get("https://oraios-software.de/serena_usage.php", params=params, timeout=1)
