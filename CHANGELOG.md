@@ -83,6 +83,9 @@ Status of the `main` branch. Changes prior to the next official version change w
     all and now validate the file path like the other file tools (#2144)
 
 * CLI:
+  - Fix: `project index` crashed while writing `.serena/logs/indexing.txt` when a failed file's path or
+    error contained characters outside the locale encoding (e.g. CJK names on Windows); the log is now
+    written as UTF-8
   - Add `download-ls-dependencies` to prefetch runtime dependencies of the given language servers
     for environments with restricted network access (#664)
   - Fix: `project health-check` reported `Health check passed - All tools working correctly` and
