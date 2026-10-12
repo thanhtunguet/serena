@@ -21,6 +21,7 @@ Status of the `main` branch. Changes prior to the next official version change w
     are preserved
   - Improve speed of file system operations, particularly enumeration of all source files of a project,
     which is particularly relevant for file system refresh operations when using the LSP backend.
+  - Fix: Repeated comments in `serena_config.yml` 
   - Fix: MCP server now reports Serena's version instead of the installed MCP SDK version (#1889)
   - Fix: importing Serena no longer loads the `anthropic` package unless the Anthropic token counter is
     actually used; the unconditional import added seconds to CLI/MCP startup on some machines (#2012)
