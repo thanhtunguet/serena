@@ -337,15 +337,22 @@ class Project(ToStringMixin):
         def log_scan_error(error: OSError) -> None:
             log.debug(f"Skipping directory {error.filename} which cannot be scanned", exc_info=error)
 
+        def relpath(e: os.DirEntry) -> str:
+            try:
+                return os.path.relpath(e.path, start=self.project_root)
+            except ValueError:
+                log.debug("Could not convert %s to project-relative path; returning absolute path", e.path)
+                return e.path
+
         directories: list[str] = []
         files: list[str] = []
         for _root, dir_entries, file_entries in walk_dir_entries(
             abs_path, followlinks=follow_links, recursive=recursive, is_ignored_dir=is_ignored_dir, onerror=log_scan_error
         ):
-            directories.extend(os.path.relpath(entry.path, start=self.project_root) for entry in dir_entries)
+            directories.extend(relpath(entry) for entry in dir_entries)
             for entry in file_entries:
                 if not is_ignored_file(entry):
-                    files.append(os.path.relpath(entry.path, start=self.project_root))
+                    files.append(relpath(entry))
 
         return ScanResult(directories, files)
 
