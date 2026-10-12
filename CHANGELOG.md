@@ -74,6 +74,14 @@ Status of the `main` branch. Changes prior to the next official version change w
     failure now surfaces as `LanguageServerTerminatedException`, the signal the restart path acts
     on, both for a broken pipe and for a stdin that shutdown had already closed (#2004)
 
+* Security:
+  - Behaviour change: Following symbolic links is no longer possible for untrusted projects.
+    In an untrusted project, symbolic links are now ignored entirely: they are neither followed when 
+    the project's files are enumerated nor accepted as a path when a file is requested; trusted projects 
+    keep following links as before (#2144)
+  - Fix: the line-based and symbol-level editing tools did not apply the path-confinement check at
+    all and now validate the file path like the other file tools (#2144)
+
 * CLI:
   - Add `download-ls-dependencies` to prefetch runtime dependencies of the given language servers
     for environments with restricted network access (#664)
