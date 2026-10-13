@@ -221,10 +221,6 @@ To achieve this, Serena offers multiple levels of (composable) configuration:
 
 **Prerequisites**. Serena is managed by *uv*, and [installing uv](https://docs.astral.sh/uv/getting-started/installation/) is the only required prerequisite.
 
-> [!NOTE]
-> When using the language server backend, some additional dependencies may need to be installed to support certain languages;
-> see the [Language Support](https://oraios.github.io/serena/01-about/020_programming-languages.html) page for details.
-
 **Install Serena**. Serena is installed via uv as follows:
 
 ```bash
@@ -232,6 +228,10 @@ uv tool install -p 3.13 serena-agent
 ```
 
 After successful installation, the command `serena` should be available in your shell.
+
+> [!NOTE]
+> When using the language server backend, some additional dependencies may need to be installed to support certain languages;
+> see the [Language Support](https://oraios.github.io/serena/01-about/020_programming-languages.html) page for details.
 
 **Initialise Serena**. To initialise Serena and verify that your setup works correctly, simply run:
 
