@@ -2,6 +2,8 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+# v2.0.0 (2026-10-13)
+
 * Licensing:
   - **Serena is now GPL-licensed**:  
     The Serena application is now licensed under GPL-3.0-or-later. 
