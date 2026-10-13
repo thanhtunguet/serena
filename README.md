@@ -24,9 +24,10 @@ approaches that rely on low-level concepts like line numbers or primitive search
 Practically, this means that your agent operates **faster, more efficiently and more reliably**, especially in larger and
 more complex codebases.
 
-> [!IMPORTANT]
-> Do not install Serena via an MCP or plugin marketplace! They contain outdated and suboptimal installation commands. 
-> Instead, follow our [Quick Start](#quick-start) instructions.
+> [!TIP]
+> Serena v2 with the new **REPL-based agent interface** has been released.    
+> [Learn more](https://oraios.github.io/serena/01-about/035_tools.html#serena-s-repl-code-execution-based-interface) 
+> about the new interface and how to [configure it](https://oraios.github.io/serena/02-usage/050_configuration.html#agent-interfaces).
 
 ## Quick Demo
 
@@ -216,6 +217,9 @@ To achieve this, Serena offers multiple levels of (composable) configuration:
 </details>
 
 ## Quick Start
+
+> [!IMPORTANT]
+> Do not install Serena via an MCP or plugin marketplace! They contain outdated and suboptimal installation commands.
 
 **Prerequisites**. Serena is managed by *uv*, and [installing uv](https://docs.astral.sh/uv/getting-started/installation/) is the only required prerequisite.
 
