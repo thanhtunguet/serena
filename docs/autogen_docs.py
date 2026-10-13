@@ -287,10 +287,8 @@ def autogen_about_intro_features():
         # remove callouts
         about_text = re.subn(r"^> \[!\w+\]\s+(^>.*?$)+", "", about_text, flags=re.MULTILINE)[0]
 
-        # replace "Quick Demo" with "Video Introduction", removing the short video
-        about_text = about_text.replace("# Quick Demo", "# Video Introduction")
-        about_text = re.subn(r"^https://github.com/user-attachments/.*?$", "", about_text, flags=re.MULTILINE)[0]
-        about_text = about_text.replace(":tv: Longer video:", "Watch our video:")
+        # fix image in video section
+        about_text = about_text.replace('src="resources', 'src="https://github.com/oraios/serena/raw/release-v2/resources')
 
         # remove emojis (e.g. :tv:)
         about_text = re.subn(r":\w+:\s+", "", about_text)[0]

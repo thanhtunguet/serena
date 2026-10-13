@@ -29,11 +29,9 @@ more complex codebases.
 > [Learn more](https://oraios.github.io/serena/01-about/035_tools.html#serena-s-repl-code-execution-based-interface) 
 > about the new interface and how to [configure it](https://oraios.github.io/serena/02-usage/050_configuration.html#agent-interfaces).
 
-## Quick Demo
+## Video
 
-https://github.com/user-attachments/assets/8d11646e-b80e-4723-b9d7-32d6101b5f58
-
-:tv: Longer video: [Introduction to Serena in 5 Minutes (YouTube)](https://www.youtube.com/watch?v=5QN7gN1KYLA)
+<a href="https://www.youtube.com/watch?v=5QN7gN1KYLA"><img src="resources/serena-video-placeholder.png" style="width:500px"></a>
 
 ## What Our "End Users" Say
 
