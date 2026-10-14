@@ -103,6 +103,8 @@ Limitations applied to untrusted projects:
   - `ls_specific_settings` defines project-specific language server settings, which can change, in particular,
     how language servers are started for the project.
 - Following of symbolic links in project directories is not supported in untrusted projects (links are fully ignored).
+- Project-local language server installations (e.g. a TypeScript LS installation in `node_modules`) will only be used
+  for trusted projects, while untrusted projects will use Serena's managed installation.
 
 ```{note}
 The term "trusted" implies only that one trusts the project enough to enable the additional features listed above.

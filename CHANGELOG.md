@@ -2,6 +2,13 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+* Security:
+  - Fix: typescript-language-server loaded `node_modules/typescript/lib/tsserver.js` from the project
+    whenever the project provided one, so merely opening an untrusted repository executed JavaScript
+    supplied by that repository. tsserver is now pinned to the TypeScript installation managed by
+    Serena unless the project is trusted; loading the project's own TypeScript has become a
+    trust-gated feature (#2129)
+
 # v2.0.0 (2026-10-13)
 
 * Licensing:
