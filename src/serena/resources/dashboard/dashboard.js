@@ -708,7 +708,7 @@ class Dashboard {
             html += '<div class="config-value">' + config.language_backend + '</div>';
 
             if (!this.jetbrainsMode) {
-                html += '<div class="config-label">Languages:</div>';
+                html += '<div class="config-label">Language Servers:</div>';
                 html += '<div class="config-value">';
                 if (config.languages && config.languages.length > 0) {
                     html += '<div class="languages-container">';
@@ -727,7 +727,7 @@ class Dashboard {
                         if (this.isAddingLanguage) {
                             html += '<div id="add-language-spinner" class="language-spinner">';
                         } else {
-                            html += '<button id="add-language-btn" class="btn language-add-btn">+ Add Language</button>';
+                            html += '<button id="add-language-btn" class="btn language-add-btn">+ Add</button>';
                             html += '<div id="add-language-spinner" class="language-spinner" style="display:none;">';
                         }
                         html += '<div class="spinner"></div>';
