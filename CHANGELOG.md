@@ -22,6 +22,8 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Fix: the Intelephense settings `maxMemory` and `maxFileSize` had no effect, because they were passed
     as initialization options, which Intelephense does not read; `maxMemory` now limits the heap of the
     server process, and `maxFileSize` is passed as `intelephense.files.maxSize`
+  - Performance: Speed up project-wide symbol discovery by reusing directory-entry metadata for ignore
+    checks and avoiding repeated ancestor-directory checks for files.
 
 # v2.0.0 (2026-10-13)
 
