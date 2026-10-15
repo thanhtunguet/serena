@@ -2208,6 +2208,7 @@ class SolidLanguageServer(ABC):
         All symbols except the root packages will have a parent attribute.
         Will ignore directories starting with '.', language-specific defaults
         and user-configured directories (e.g. from .gitignore).
+        Ignore rules apply to unresolved paths. Discovered symbolic links are followed only in trusted projects.
 
         :param within_relative_path: pass a relative path to only consider symbols within this path.
             If a file is passed, only the symbols within this file will be considered.
@@ -2217,8 +2218,6 @@ class SolidLanguageServer(ABC):
 
         # Helper function to recursively process directories
         def process_directory(abs_dir_path: str) -> list[ls_types.UnifiedSymbolInformation]:
-            abs_dir_path = os.path.realpath(abs_dir_path)
-
             rel_dir_path: str | None
             try:
                 rel_dir_path = str(Path(abs_dir_path).relative_to(self.repository_root_path))
@@ -2242,13 +2241,17 @@ class SolidLanguageServer(ABC):
                     uri=str(pathlib.Path(abs_dir_path).as_uri()),
                     range={"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
                     absolutePath=str(abs_dir_path),
-                    relativePath=str(Path(abs_dir_path).resolve().relative_to(self.repository_root_path)),
+                    relativePath=os.path.relpath(abs_dir_path, self.repository_root_path),
                 ),
                 children=[],
             )
             result.append(package_symbol)
 
             for contained_dir_or_file_entry in contained_dir_or_file_entries:
+                # skip symbolic links during discovery in untrusted projects
+                if not self.config.is_project_trusted and contained_dir_or_file_entry.is_symlink():
+                    continue
+
                 contained_dir_or_file_name = contained_dir_or_file_entry.name
                 contained_dir_or_file_abs_path = contained_dir_or_file_entry.path
 
@@ -2297,7 +2300,7 @@ class SolidLanguageServer(ABC):
                                 uri=str(pathlib.Path(contained_dir_or_file_abs_path).as_uri()),
                                 range=file_range,
                                 absolutePath=str(contained_dir_or_file_abs_path),
-                                relativePath=str(Path(contained_dir_or_file_abs_path).resolve().relative_to(self.repository_root_path)),
+                                relativePath=contained_dir_or_file_rel_path,
                             ),
                             children=file_root_nodes,
                             parent=package_symbol,

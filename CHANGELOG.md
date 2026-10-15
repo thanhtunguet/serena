@@ -22,6 +22,9 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Fix: the Intelephense settings `maxMemory` and `maxFileSize` had no effect, because they were passed
     as initialization options, which Intelephense does not read; `maxMemory` now limits the heap of the
     server process, and `maxFileSize` is passed as `intelephense.files.maxSize`
+  - Fix: Project-wide symbol discovery now skips file and directory symlinks in untrusted projects.
+    In trusted projects, ignore rules consistently apply to unresolved alias paths, and symlinks to
+    targets outside the project root no longer cause discovery to fail (#2163).
   - Performance: Speed up project-wide symbol discovery by reusing directory-entry metadata for ignore
     checks and avoiding repeated ancestor-directory checks for files.
 
