@@ -2214,22 +2214,6 @@ class SolidLanguageServer(ABC):
                     # Link file symbol with package
                     package_symbol["children"].append(file_symbol)
 
-                    # TODO: Not sure if this is actually still needed given recent changes to relative path handling
-                    def fix_relative_path(nodes: list[ls_types.UnifiedSymbolInformation]) -> None:
-                        for node in nodes:
-                            if "location" in node and "relativePath" in node["location"]:
-                                path = Path(node["location"]["relativePath"])  # type: ignore
-                                if path.is_absolute():
-                                    try:
-                                        path = path.relative_to(self.repository_root_path)
-                                        node["location"]["relativePath"] = str(path)
-                                    except Exception:
-                                        pass
-                            if "children" in node:
-                                fix_relative_path(node["children"])
-
-                    fix_relative_path(file_root_nodes)
-
             return result
 
         if within_relative_path:
