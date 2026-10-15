@@ -102,7 +102,9 @@ Limitations applied to untrusted projects:
   - `activation_command` is a shell command that is to be run whenever the project is activated.
   - `ls_specific_settings` defines project-specific language server settings, which can change, in particular,
     how language servers are started for the project.
-- Following of symbolic links in project directories is not supported in untrusted projects (links are fully ignored).
+- Following of symbolic links in project directories is restricted in untrusted projects:
+  - Symbolic links are not followed when walking the project directory tree.
+  - Explicitly requested targets that resolve to locations outside the project root are rejected.
 - Project-local language server installations (e.g. a TypeScript LS installation in `node_modules`) will only be used
   for trusted projects, while untrusted projects will use Serena's managed installation.
 
