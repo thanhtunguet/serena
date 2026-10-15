@@ -2,6 +2,10 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+* Dashboard:
+  - Change the default value of `web_dashboard_open_on_launch` to false on systems that support
+    tray-based access to the dashboard.
+
 * Security:
   - Fix: typescript-language-server loaded `node_modules/typescript/lib/tsserver.js` from the project
     whenever the project provided one, so merely opening an untrusted repository executed JavaScript
