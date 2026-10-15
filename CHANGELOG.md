@@ -6,8 +6,16 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Fix: the MCP registry manifest (`server.json`) declared Serena's own CLI arguments as runtime
     arguments, so clients installing Serena from the MCP registry generated a launch command with a
     stray package spec, and project auto-activation failed
-
+  - Fix: logs stopped updating when using SSE or streamable HTTP because Uvicorn's logging
+    configuration closed the Serena's log handlers. This is due to a bug in the MCP SDK,
+    in which the logging configuration override was effectively hard-coded.
+    We now patch Uvicorn's log config constructor to prevent this.
+    This affected both dashboard log retrieval and file logs written by Serena.
+   
 * Dashboard:
+  - Show an `[untrusted]` indicator beside the active project name for untrusted projects,
+    with a formatted tooltip explaining the limitations and a link to the trusted-projects
+    documentation. Add reusable tooltip support for hover and keyboard interaction.
   - Change the default value of `web_dashboard_open_on_launch` to false on systems that support
     tray-based access to the dashboard.
 
