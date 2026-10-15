@@ -2,6 +2,11 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+* General:
+  - Fix: the MCP registry manifest (`server.json`) declared Serena's own CLI arguments as runtime
+    arguments, so clients installing Serena from the MCP registry generated a launch command with a
+    stray package spec, and project auto-activation failed
+
 * Dashboard:
   - Change the default value of `web_dashboard_open_on_launch` to false on systems that support
     tray-based access to the dashboard.
