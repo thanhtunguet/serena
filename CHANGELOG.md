@@ -16,11 +16,12 @@ Status of the `main` branch. Changes prior to the next official version change w
     This affected both dashboard log retrieval and file logs written by Serena.
    
 * Dashboard:
+  - Add a welcome pane for users with an unset `web_dashboard_open_on_launch` preference,
+    allowing them to choose whether the dashboard opens whenever Serena starts. The dashboard
+    continues to open automatically until a preference is configured.
   - Show an `[untrusted]` indicator beside the active project name for untrusted projects,
     with a formatted tooltip explaining the limitations and a link to the trusted-projects
     documentation. Add reusable tooltip support for hover and keyboard interaction.
-  - Change the default value of `web_dashboard_open_on_launch` to false on systems that support
-    tray-based access to the dashboard.
 
 * Security:
   - Fix: typescript-language-server loaded `node_modules/typescript/lib/tsserver.js` from the project
