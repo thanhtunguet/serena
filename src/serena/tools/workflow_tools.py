@@ -27,13 +27,14 @@ class OnboardingTool(Tool, MemoryApiMixin, ToolMarkerCanEdit):
 
 class InitialInstructionsTool(Tool, ToolMarkerDoesNotRequireActiveProject):
     """
-    Provides instructions Serena usage (i.e. the 'Serena Instructions Manual')
+    Provides instructions on Serena usage (i.e. the 'Serena Instructions Manual')
     for clients that do not read the initial instructions when the MCP server is connected.
     """
 
     def apply(self) -> str:
         """
-        Provides the 'Serena Instructions Manual', which contains essential information on how to use the Serena toolbox.
+        Provides the 'Serena Instructions Manual', which contains essential information on how to use the Serena toolbox,
+        and the Serena session ID.
         IMPORTANT: If you have not yet read the manual, call this tool immediately after you are given your task by the user,
         as it will critically inform you!
         """

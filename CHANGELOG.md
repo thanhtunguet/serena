@@ -3,6 +3,9 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * General:
+  - Fix: Re-establish compatibility with the Claude Desktop client in chat mode (code mode was not affected).
+    The client filters out the parameter `session_id`, which was introduced for several tools with v2.0.0.
+    The parameter was renamed to `session`.
   - Fix: the MCP registry manifest (`server.json`) declared Serena's own CLI arguments as runtime
     arguments, so clients installing Serena from the MCP registry generated a launch command with a
     stray package spec, and project auto-activation failed
