@@ -737,7 +737,7 @@ class SerenaAgent:
             self._dashboard_manager = DashboardManager(
                 port,
                 self.serena_config.web_dashboard_listen_address,
-                self.serena_config.web_dashboard_open_on_launch,
+                self.serena_config.is_dashboard_opened_on_launch(),
                 self._active_project,
                 mode_str=self.serena_config.web_dashboard_interface,
             )
@@ -776,7 +776,7 @@ class SerenaAgent:
         :return: whether the web dashboard is available and opening it is a meaningful operation
             (i.e. it is enabled and not opened automatically)
         """
-        return serena_config.web_dashboard and not serena_config.web_dashboard_open_on_launch and not serena_config.gui_log_window
+        return serena_config.web_dashboard and not serena_config.is_dashboard_opened_on_launch() and not serena_config.gui_log_window
 
     @classmethod
     def _create_base_toolset(

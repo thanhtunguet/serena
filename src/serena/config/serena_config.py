@@ -897,7 +897,7 @@ class SerenaConfig(SharedConfig, ModeSelectionDefinitionWithBaseModes):
     log_level: int = logging.INFO
     trace_lsp_communication: bool = False
     web_dashboard: bool = True
-    web_dashboard_open_on_launch: bool = True
+    web_dashboard_open_on_launch: bool | None = None
     web_dashboard_interface: str | None = None
     web_dashboard_listen_address: str = "127.0.0.1"
     web_dashboard_trusted_hosts: list[str] = field(default_factory=lambda: ["127.0.0.1", "localhost"])
@@ -1370,6 +1370,26 @@ class SerenaConfig(SharedConfig, ModeSelectionDefinitionWithBaseModes):
         else:
             raise ValueError(f"Project '{project_name}' not found in Serena configuration; valid project names: {self.project_names}")
         self._persist_projects()
+
+    def is_dashboard_opened_on_launch(self) -> bool:
+        """
+        Returns whether the web dashboard is to be opened on launch
+        """
+        if self.web_dashboard_open_on_launch is None:  # not yet configured, so show on first launch
+            return True
+        return self.web_dashboard_open_on_launch
+
+    def save_web_dashboard_open_on_launch(self, value: bool) -> None:
+        """Save the dashboard launch preference without persisting transient configuration overrides."""
+        # persist against the latest disk configuration under the shared file lock
+        if self.config_file_path is not None:
+            with FileLock(self.config_file_path + ".lock"):
+                persisted = SerenaConfig.from_config_file()
+                persisted.web_dashboard_open_on_launch = value
+                persisted._save()
+
+        # update the running configuration only after persistence succeeds
+        self.web_dashboard_open_on_launch = value
 
     def _persist_projects(self) -> None:
         """Persist this instance's project-list changes without undoing concurrent edits.
