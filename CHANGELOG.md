@@ -19,8 +19,6 @@ Status of the `main` branch. Changes prior to the next official version change w
   - Show an `[untrusted]` indicator beside the active project name for untrusted projects,
     with a formatted tooltip explaining the limitations and a link to the trusted-projects
     documentation. Add reusable tooltip support for hover and keyboard interaction.
-  - Change the default value of `web_dashboard_open_on_launch` to false on systems that support
-    tray-based access to the dashboard.
 
 * Security:
   - Fix: typescript-language-server loaded `node_modules/typescript/lib/tsserver.js` from the project
