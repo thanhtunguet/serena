@@ -35,8 +35,6 @@ class InitialInstructionsTool(Tool, ToolMarkerDoesNotRequireActiveProject):
         """
         Provides the 'Serena Instructions Manual', which contains essential information on how to use the Serena toolbox,
         and the Serena session ID.
-        IMPORTANT: If you have not yet read the manual, call this tool immediately after you are given your task by the user,
-        as it will critically inform you!
         """
         return self.agent.create_system_prompt()
 
