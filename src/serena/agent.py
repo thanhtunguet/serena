@@ -1210,7 +1210,7 @@ class SerenaAgent:
 
         # inform about the session id
         system_prompt += "\n\n" + self._format_prompt_tag(
-            f"Your Serena session id is `{session_id}`. Pass it as the `session_id` parameter to tools which require it.",
+            f"Your Serena session id is `{session_id}`. Pass it as the `session` parameter to tools which require it.",
             tag="session",
         )
 
