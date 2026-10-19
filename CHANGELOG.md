@@ -2,6 +2,8 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+# v2.1.0 (2026-10-19)
+
 * General:
   - Fix: Re-establish compatibility with the Claude Desktop client in chat mode (code mode was not affected).
     The client filters out the parameter `session_id`, which was introduced for several tools with v2.0.0.
