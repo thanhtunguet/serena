@@ -19,6 +19,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     incorrect double semicolon behind (`... n * 3;;`). Mirrors the range-start fix already applied
     to Go's `type`/`var`/`const` declarations, and the range-end fix already applied to Nix's
     attribute declarations (#1956)
+  - Fix: C/C++ (clangd) reference searches returned at most 1000 references; clangd is now started with
+    `--limit-references=0` unless `ls_extra_args` already sets a limit
 
 # v2.1.0 (2026-10-19)
 
