@@ -21,6 +21,8 @@ Status of the `main` branch. Changes prior to the next official version change w
     attribute declarations (#1956)
   - Fix: C/C++ (clangd) reference searches returned at most 1000 references; clangd is now started with
     `--limit-references=0` unless `ls_extra_args` already sets a limit
+  - C/C++ (clangd) logs errors only (`--log=error`) instead of a line for every request and parse, unless
+    `ls_extra_args` sets `--log` or Serena logs at debug level
 
 # v2.1.0 (2026-10-19)
 
