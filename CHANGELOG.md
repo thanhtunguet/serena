@@ -9,6 +9,16 @@ Status of the `main` branch. Changes prior to the next official version change w
     `.graphql`/`.gql` files. Document symbols, hover and cross-file go-to-definition require a graphql-config file
     (`.graphqlrc.yml` / `graphql.config.*`) at the repository root; without one, Serena logs an actionable message
     instead of waiting out the startup timeout. Find-references is unsupported (not implemented by the upstream server)
+  - Fix: tsserver reports the range of a single top-level `const`/`let`/`var` declaration starting
+    at the identifier and ending before the statement's semicolon, excluding a leading `export`,
+    the keyword, and the trailing `;` (unlike `function`/`class` declarations, whose range already
+    includes their keyword). `replace_symbol_body` then dropped the prefix and the semicolon from
+    the body and replacement range, so re-supplying them in a full-statement edit either duplicated
+    the prefix and produced invalid syntax (`export const twice = ...` became `export const export
+    const twice = ...`, returned as `OK`) or, once only the prefix was fixed, left a harmless but
+    incorrect double semicolon behind (`... n * 3;;`). Mirrors the range-start fix already applied
+    to Go's `type`/`var`/`const` declarations, and the range-end fix already applied to Nix's
+    attribute declarations (#1956)
 
 # v2.1.0 (2026-10-19)
 
