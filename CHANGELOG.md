@@ -2,6 +2,10 @@
 
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
+* JetBrains
+  - Fix: When applying a non-symbolic edit, do not raise a post-edit exception during IDE file refresh
+    if the IDE's plugin server is not reachable.
+
 * Language Servers:
   - Extend allowed types in persisted symbol caches, fixing cache loading issues with `clangd`
     when overriding values like `ls_path`, `clangd_version` or `compile_commands_dir`
