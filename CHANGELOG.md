@@ -3,6 +3,8 @@
 Status of the `main` branch. Changes prior to the next official version change will appear here.
 
 * Language Servers:
+  - Extend allowed types in persisted symbol caches, fixing cache loading issues with `clangd`
+    when overriding values like `ls_path`, `clangd_version` or `compile_commands_dir`
   - Add GraphQL language server support (experimental) via `graphql-language-service-cli` (`graphql-lsp`) for
     `.graphql`/`.gql` files. Document symbols, hover and cross-file go-to-definition require a graphql-config file
     (`.graphqlrc.yml` / `graphql.config.*`) at the repository root; without one, Serena logs an actionable message
